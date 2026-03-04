@@ -1,0 +1,145 @@
+[
+    {
+        "disruption_id": "DIS-2025-001",
+        "title": "Suez Canal Blockage",
+        "type": "logistics",
+        "region": "Middle East",
+        "affected_countries": [
+            "Egypt"
+        ],
+        "start_date": "2025-03-15",
+        "end_date": "2025-03-28",
+        "severity": 7,
+        "description": "Large container vessel grounding blocked Suez Canal for 13 days, causing major shipping delays for European-bound cargo from Asia.",
+        "affected_suppliers": [
+            "sup-samsung-001",
+            "sup-infineon-my-001"
+        ],
+        "financial_impact_eur": 1800000,
+        "mitigation_taken": "Rerouted critical shipments via air freight; activated European buffer stock from Infineon Dresden.",
+        "outcome": "effective",
+        "lessons_learned": "Maintain 5-day air-freight buffer budget for critical semiconductor components. Dual-source logistics providers for Asian routes.",
+        "is_active": false
+    },
+    {
+        "disruption_id": "DIS-2025-002",
+        "title": "South Korea Port Workers Strike",
+        "type": "labor",
+        "region": "East Asia",
+        "affected_countries": [
+            "South Korea"
+        ],
+        "start_date": "2025-06-01",
+        "end_date": "2025-06-12",
+        "severity": 5,
+        "description": "Port workers at Busan and Incheon ports went on strike for 12 days, delaying battery component shipments.",
+        "affected_suppliers": [
+            "sup-samsung-001",
+            "sup-lg-001"
+        ],
+        "financial_impact_eur": 620000,
+        "mitigation_taken": "Pre-positioned safety stock covered 80% of gap. Negotiated SLA extension with VW for non-critical orders.",
+        "outcome": "effective",
+        "lessons_learned": "Monitor labor relations calendar for key port regions. Build 7-day buffer before known negotiation periods.",
+        "is_active": false
+    },
+    {
+        "disruption_id": "DIS-2025-003",
+        "title": "Malaysia Semiconductor Fab Fire",
+        "type": "facility",
+        "region": "Southeast Asia",
+        "affected_countries": [
+            "Malaysia"
+        ],
+        "start_date": "2025-09-10",
+        "end_date": "2025-10-15",
+        "severity": 8,
+        "description": "Fire at Infineon Kulim facility damaged one clean room, reducing CAN controller output by 40% for 5 weeks.",
+        "affected_suppliers": [
+            "sup-infineon-my-001"
+        ],
+        "financial_impact_eur": 2400000,
+        "mitigation_taken": "Emergency sourcing from Infineon Dresden at premium pricing. Partial order deferral agreed with Bosch.",
+        "outcome": "partially_effective",
+        "lessons_learned": "Single-facility risk for CAN controllers is HIGH. Qualify STMicro as third source for CAN components. Insurance claim process took too long — streamline documentation.",
+        "is_active": false
+    },
+    {
+        "disruption_id": "DIS-2025-004",
+        "title": "EU Chip Act Compliance Audit",
+        "type": "regulatory",
+        "region": "Europe",
+        "affected_countries": [
+            "Germany",
+            "France"
+        ],
+        "start_date": "2025-11-01",
+        "end_date": "2025-12-20",
+        "severity": 3,
+        "description": "EU regulatory audit required documentation of semiconductor supply chain provenance. Slowed procurement approvals by 2 weeks.",
+        "affected_suppliers": [
+            "sup-infineon-de-001",
+            "sup-stmicro-001"
+        ],
+        "financial_impact_eur": 180000,
+        "mitigation_taken": "Dedicated compliance team compiled documentation. Pre-approved suppliers expedited through new compliance portal.",
+        "outcome": "effective",
+        "lessons_learned": "Maintain up-to-date supply chain provenance documentation. Build compliance templates for recurring audits.",
+        "is_active": false
+    },
+    {
+        "disruption_id": "DIS-2026-001",
+        "title": "Japan Earthquake — Noto Peninsula",
+        "type": "natural_disaster",
+        "region": "East Asia",
+        "affected_countries": [
+            "Japan"
+        ],
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "severity": 6,
+        "description": "6.2 magnitude earthquake damaged logistics infrastructure in Ishikawa prefecture. Indirect delays to Korean shipping lanes.",
+        "affected_suppliers": [
+            "sup-samsung-001"
+        ],
+        "financial_impact_eur": 340000,
+        "mitigation_taken": "Routed Samsung shipments through alternate Busan terminal. Minimal production impact due to healthy inventory.",
+        "outcome": "effective",
+        "lessons_learned": "Geographic diversification of shipping routes is critical. Samsung alternate routing plan should be pre-negotiated.",
+        "is_active": false
+    },
+    {
+        "disruption_id": "DIS-2026-002",
+        "title": "Taiwan Strait Shipping Congestion",
+        "type": "geopolitical",
+        "region": "East Asia",
+        "affected_countries": [
+            "Taiwan"
+        ],
+        "start_date": "2026-02-25",
+        "end_date": null,
+        "severity": 9,
+        "description": "PLA naval exercises causing commercial shipping delays in Taiwan Strait. Port of Kaohsiung reporting 14-21 day delays. Affects TSMC semiconductor shipments. Estimated impact: 3 of your 6 Tier-1 supplier lanes affected.",
+        "affected_suppliers": [
+            "sup-tsmc-001"
+        ],
+        "financial_impact_eur": 4200000,
+        "mitigation_taken": null,
+        "outcome": null,
+        "lessons_learned": null,
+        "is_active": true,
+        "risk_details": {
+            "shipments_affected": [
+                "SHP-TW-4821",
+                "SHP-TW-4835"
+            ],
+            "orders_at_risk": [
+                "ORD-DE-8821",
+                "ORD-DE-9103"
+            ],
+            "days_until_stockout": 8,
+            "sla_breach_probability": 0.73,
+            "revenue_at_risk_eur": 4200000
+        }
+    }
+]

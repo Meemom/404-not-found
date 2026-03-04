@@ -1,0 +1,123 @@
+[
+    {
+        "order_id": "ORD-DE-8821",
+        "customer_id": "cust-bmw-001",
+        "customer_name": "BMW AG",
+        "product": "Engine Control Unit v4.2",
+        "quantity": 12000,
+        "unit_price_eur": 187.50,
+        "total_value_eur": 2250000,
+        "order_date": "2026-02-01",
+        "due_date": "2026-03-10",
+        "sla_deadline": "2026-03-10",
+        "status": "in_production",
+        "completion_pct": 45,
+        "components_required": [
+            "MCU-32BIT-AUTO",
+            "POWER-MGMT-IC",
+            "CAN-CONTROLLER"
+        ],
+        "shipments": [
+            {
+                "shipment_id": "SHP-TW-4821",
+                "from_supplier": "sup-tsmc-001",
+                "component": "MCU-32BIT-AUTO",
+                "quantity": 40000,
+                "status": "delayed",
+                "eta_original": "2026-03-01",
+                "eta_revised": "2026-03-18",
+                "delay_days": 17
+            }
+        ]
+    },
+    {
+        "order_id": "ORD-DE-9103",
+        "customer_id": "cust-vw-001",
+        "customer_name": "Volkswagen Group",
+        "product": "Power Management Module v3.1",
+        "quantity": 8500,
+        "unit_price_eur": 234.00,
+        "total_value_eur": 1989000,
+        "order_date": "2026-02-10",
+        "due_date": "2026-03-21",
+        "sla_deadline": "2026-03-21",
+        "status": "in_production",
+        "completion_pct": 30,
+        "components_required": [
+            "POWER-MGMT-IC",
+            "GATE-DRIVER-IC"
+        ],
+        "shipments": [
+            {
+                "shipment_id": "SHP-TW-4835",
+                "from_supplier": "sup-tsmc-001",
+                "component": "POWER-MGMT-IC",
+                "quantity": 25000,
+                "status": "at_risk",
+                "eta_original": "2026-03-05",
+                "eta_revised": "2026-03-14",
+                "delay_days": 9
+            }
+        ]
+    },
+    {
+        "order_id": "ORD-DE-9250",
+        "customer_id": "cust-bosch-001",
+        "customer_name": "Bosch GmbH",
+        "product": "CAN Bus Controller Board v2.0",
+        "quantity": 5000,
+        "unit_price_eur": 142.00,
+        "total_value_eur": 710000,
+        "order_date": "2026-02-15",
+        "due_date": "2026-04-01",
+        "sla_deadline": "2026-04-01",
+        "status": "awaiting_components",
+        "completion_pct": 10,
+        "components_required": [
+            "CAN-CONTROLLER",
+            "SENSOR-IC-MEMS"
+        ],
+        "shipments": [
+            {
+                "shipment_id": "SHP-MY-2201",
+                "from_supplier": "sup-infineon-my-001",
+                "component": "CAN-CONTROLLER",
+                "quantity": 6000,
+                "status": "on_track",
+                "eta_original": "2026-03-10",
+                "eta_revised": null,
+                "delay_days": 0
+            }
+        ]
+    },
+    {
+        "order_id": "ORD-DE-9301",
+        "customer_id": "cust-bmw-001",
+        "customer_name": "BMW AG",
+        "product": "Sensor Interface Board v1.5",
+        "quantity": 6000,
+        "unit_price_eur": 98.00,
+        "total_value_eur": 588000,
+        "order_date": "2026-02-20",
+        "due_date": "2026-03-28",
+        "sla_deadline": "2026-03-28",
+        "status": "in_production",
+        "completion_pct": 60,
+        "components_required": [
+            "SENSOR-IC-MEMS",
+            "MCU-32BIT-AUTO"
+        ],
+        "shipments": [
+            {
+                "shipment_id": "SHP-CH-1105",
+                "from_supplier": "sup-stmicro-001",
+                "component": "SENSOR-IC-MEMS",
+                "quantity": 7000,
+                "status": "on_track",
+                "eta_original": "2026-03-08",
+                "eta_revised": null,
+                "delay_days": 0
+            }
+        ]
+    }
+]

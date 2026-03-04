@@ -1,0 +1,81 @@
+{
+    "id": "autoparts-gmbh-001",
+    "name": "AutoParts GmbH",
+    "industry": "Automotive Parts Manufacturing",
+    "hq": {
+        "city": "Frankfurt",
+        "country": "Germany",
+        "lat": 50.1109,
+        "lng": 8.6821
+    },
+    "annual_revenue_eur": 280000000,
+    "employees": 1400,
+    "avatar": {
+        "initials": "AG",
+        "color": "#2D5A8E",
+        "shape": "hexagon"
+    },
+    "customers": [
+        {
+            "id": "cust-bmw-001",
+            "name": "BMW AG",
+            "tier": 1,
+            "annual_value_eur": 85000000,
+            "sla_days": 14,
+            "location": {
+                "city": "Munich",
+                "country": "Germany",
+                "lat": 48.1351,
+                "lng": 11.582
+            }
+        },
+        {
+            "id": "cust-vw-001",
+            "name": "Volkswagen Group",
+            "tier": 1,
+            "annual_value_eur": 72000000,
+            "sla_days": 21,
+            "location": {
+                "city": "Wolfsburg",
+                "country": "Germany",
+                "lat": 52.4227,
+                "lng": 10.7865
+            }
+        },
+        {
+            "id": "cust-bosch-001",
+            "name": "Bosch GmbH",
+            "tier": 2,
+            "annual_value_eur": 31000000,
+            "sla_days": 30,
+            "location": {
+                "city": "Stuttgart",
+                "country": "Germany",
+                "lat": 48.7758,
+                "lng": 9.1829
+            }
+        }
+    ],
+    "risk_appetite": "moderate",
+    "inventory_policy": {
+        "safety_stock_days": 21,
+        "reorder_point_days": 14
+    },
+    "critical_components": [
+        "MCU-32BIT-AUTO",
+        "POWER-MGMT-IC",
+        "CAN-CONTROLLER"
+    ],
+    "founded_year": 1987,
+    "certifications": [
+        "IATF 16949",
+        "ISO 14001",
+        "ISO 9001"
+    ],
+    "primary_products": [
+        "Engine Control Units",
+        "Power Management Modules",
+        "CAN Bus Controllers",
+        "Sensor Interface Boards"
+    ]
+}

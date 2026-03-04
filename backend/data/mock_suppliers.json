@@ -1,0 +1,194 @@
+[
+    {
+        "supplier_id": "sup-tsmc-001",
+        "name": "TSMC",
+        "location": {
+            "city": "Hsinchu",
+            "country": "Taiwan",
+            "lat": 24.8138,
+            "lng": 120.9675
+        },
+        "tier": 1,
+        "components_supplied": [
+            "MCU-32BIT-AUTO",
+            "POWER-MGMT-IC"
+        ],
+        "health_score": 42,
+        "lead_time_days": 45,
+        "single_source": true,
+        "annual_spend_eur": 48000000,
+        "contract_type": "multi-year",
+        "force_majeure_clause": true,
+        "backup_suppliers": [
+            "sup-infineon-de-001"
+        ],
+        "current_status": "at_risk",
+        "contact": {
+            "name": "Wei-Lin Chen",
+            "role": "Account Director",
+            "email": "w.chen@tsmc-sales.example.com"
+        },
+        "reliability_rating": 94,
+        "on_time_delivery_pct": 87,
+        "quality_score": 98
+    },
+    {
+        "supplier_id": "sup-samsung-001",
+        "name": "Samsung SDI",
+        "location": {
+            "city": "Seoul",
+            "country": "South Korea",
+            "lat": 37.5665,
+            "lng": 126.978
+        },
+        "tier": 1,
+        "components_supplied": [
+            "BATT-CELL-48V",
+            "POWER-MODULE-HV"
+        ],
+        "health_score": 78,
+        "lead_time_days": 30,
+        "single_source": false,
+        "annual_spend_eur": 32000000,
+        "contract_type": "annual",
+        "force_majeure_clause": true,
+        "backup_suppliers": [
+            "sup-lg-001"
+        ],
+        "current_status": "normal",
+        "contact": {
+            "name": "Ji-Hoon Park",
+            "role": "Senior Sales Manager",
+            "email": "j.park@samsung-sdi.example.com"
+        },
+        "reliability_rating": 91,
+        "on_time_delivery_pct": 93,
+        "quality_score": 96
+    },
+    {
+        "supplier_id": "sup-infineon-my-001",
+        "name": "Infineon Technologies (Malaysia)",
+        "location": {
+            "city": "Kuala Lumpur",
+            "country": "Malaysia",
+            "lat": 3.139,
+            "lng": 101.6869
+        },
+        "tier": 1,
+        "components_supplied": [
+            "CAN-CONTROLLER",
+            "GATE-DRIVER-IC"
+        ],
+        "health_score": 85,
+        "lead_time_days": 21,
+        "single_source": false,
+        "annual_spend_eur": 28000000,
+        "contract_type": "multi-year",
+        "force_majeure_clause": true,
+        "backup_suppliers": [
+            "sup-infineon-de-001"
+        ],
+        "current_status": "normal",
+        "contact": {
+            "name": "Ahmad Razak",
+            "role": "Key Account Manager",
+            "email": "a.razak@infineon.example.com"
+        },
+        "reliability_rating": 88,
+        "on_time_delivery_pct": 91,
+        "quality_score": 95
+    },
+    {
+        "supplier_id": "sup-infineon-de-001",
+        "name": "Infineon Technologies (Dresden)",
+        "location": {
+            "city": "Dresden",
+            "country": "Germany",
+            "lat": 51.0504,
+            "lng": 13.7373
+        },
+        "tier": 2,
+        "components_supplied": [
+            "MCU-32BIT-AUTO",
+            "CAN-CONTROLLER",
+            "GATE-DRIVER-IC"
+        ],
+        "health_score": 92,
+        "lead_time_days": 7,
+        "single_source": false,
+        "annual_spend_eur": 12000000,
+        "contract_type": "annual",
+        "force_majeure_clause": false,
+        "backup_suppliers": [],
+        "current_status": "normal",
+        "contact": {
+            "name": "Klaus Richter",
+            "role": "Regional Sales Lead",
+            "email": "k.richter@infineon.example.com"
+        },
+        "reliability_rating": 96,
+        "on_time_delivery_pct": 97,
+        "quality_score": 99
+    },
+    {
+        "supplier_id": "sup-stmicro-001",
+        "name": "STMicroelectronics",
+        "location": {
+            "city": "Geneva",
+            "country": "Switzerland",
+            "lat": 46.2044,
+            "lng": 6.1432
+        },
+        "tier": 2,
+        "components_supplied": [
+            "POWER-MGMT-IC",
+            "SENSOR-IC-MEMS"
+        ],
+        "health_score": 88,
+        "lead_time_days": 14,
+        "single_source": false,
+        "annual_spend_eur": 8500000,
+        "contract_type": "annual",
+        "force_majeure_clause": true,
+        "backup_suppliers": [],
+        "current_status": "normal",
+        "contact": {
+            "name": "Marie Dubois",
+            "role": "Account Manager",
+            "email": "m.dubois@st.example.com"
+        },
+        "reliability_rating": 90,
+        "on_time_delivery_pct": 94,
+        "quality_score": 97
+    },
+    {
+        "supplier_id": "sup-lg-001",
+        "name": "LG Energy Solution",
+        "location": {
+            "city": "Ochang",
+            "country": "South Korea",
+            "lat": 36.7210,
+            "lng": 127.4305
+        },
+        "tier": 2,
+        "components_supplied": [
+            "BATT-CELL-48V"
+        ],
+        "health_score": 81,
+        "lead_time_days": 28,
+        "single_source": false,
+        "annual_spend_eur": 6000000,
+        "contract_type": "spot",
+        "force_majeure_clause": false,
+        "backup_suppliers": [],
+        "current_status": "normal",
+        "contact": {
+            "name": "Soo-Yeon Kim",
+            "role": "Business Development",
+            "email": "s.kim@lgenergy.example.com"
+        },
+        "reliability_rating": 85,
+        "on_time_delivery_pct": 89,
+        "quality_score": 93
+    }
+]
