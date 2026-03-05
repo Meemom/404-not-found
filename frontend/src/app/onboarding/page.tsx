@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import {
   ArrowRight,
   ArrowLeft,
@@ -14,10 +14,168 @@ import {
   Check,
   Plus,
   X,
+  Radio,
+  Activity,
+  Globe,
 } from "lucide-react";
 import { useWardenStore } from "@/lib/store";
 import { updateCompanyProfile, getCompanyProfile } from "@/lib/api";
 import { useRouter } from "next/navigation";
+
+/* ── Floating network nodes for welcome background ── */
+interface FloatingNode {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  duration: number;
+  delay: number;
+  dx: number;
+  dy: number;
+}
+
+function generateNodes(count: number): FloatingNode[] {
+  const nodes: FloatingNode[] = [];
+  for (let i = 0; i < count; i++) {
+    nodes.push({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 3 + Math.random() * 4,
+      duration: 12 + Math.random() * 18,
+      delay: Math.random() * 5,
+      dx: (Math.random() - 0.5) * 30,
+      dy: (Math.random() - 0.5) * 30,
+    });
+  }
+  return nodes;
+}
+
+function NetworkBackground() {
+  const nodes = useMemo(() => generateNodes(24), []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Radial gradient overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.06)_0%,transparent_70%)]" />
+
+      {/* Floating nodes */}
+      {nodes.map((node) => (
+        <motion.div
+          key={node.id}
+          className="absolute rounded-full bg-blue-400/20"
+          style={{
+            width: node.size,
+            height: node.size,
+            left: `${node.x}%`,
+            top: `${node.y}%`,
+          }}
+          animate={{
+            x: [0, node.dx, -node.dx * 0.5, 0],
+            y: [0, node.dy, -node.dy * 0.5, 0],
+            opacity: [0.15, 0.4, 0.2, 0.15],
+            scale: [1, 1.3, 0.9, 1],
+          }}
+          transition={{
+            duration: node.duration,
+            delay: node.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+
+      {/* Animated connection lines */}
+      <svg className="absolute inset-0 w-full h-full">
+        {nodes.slice(0, 10).map((node, i) => {
+          const target = nodes[(i + 3) % nodes.length];
+          return (
+            <motion.line
+              key={`line-${i}`}
+              x1={`${node.x}%`}
+              y1={`${node.y}%`}
+              x2={`${target.x}%`}
+              y2={`${target.y}%`}
+              stroke="rgba(59,130,246,0.07)"
+              strokeWidth="1"
+              animate={{ opacity: [0, 0.12, 0] }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                delay: i * 0.8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Pulse rings from center */}
+      {[0, 2, 4].map((delay) => (
+        <motion.div
+          key={`ring-${delay}`}
+          className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-300/10"
+          animate={{
+            width: [80, 500],
+            height: [80, 500],
+            opacity: [0.3, 0],
+          }}
+          transition={{
+            duration: 6,
+            delay,
+            repeat: Infinity,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Animated counter ── */
+function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.round(v));
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(count, target, {
+      duration: 2,
+      ease: "easeOut",
+    });
+    const unsub = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsub();
+    };
+  }, [count, rounded, target]);
+
+  return (
+    <span>
+      {display}
+      {suffix}
+    </span>
+  );
+}
+
+/* ── Welcome step feature cards ── */
+const FEATURES = [
+  {
+    icon: Radio,
+    title: "Real-Time Monitoring",
+    description: "Scans global news, shipping data, and geopolitical signals 24/7",
+  },
+  {
+    icon: Activity,
+    title: "Risk Quantification",
+    description: "Calculates revenue at risk, SLA breach probability, and cascade impact",
+  },
+  {
+    icon: Globe,
+    title: "Autonomous Response",
+    description: "Drafts emails, adjusts POs, and escalates — you just approve",
+  },
+];
 
 const INDUSTRIES = [
   { id: "automotive", label: "Automotive & Transportation Components", icon: "🚗" },
@@ -238,28 +396,143 @@ export default function OnboardingPage() {
           {step === 0 && (
             <motion.div
               key="welcome"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0, y: -24 }}
-              transition={{ duration: 0.3 }}
-              className="text-center"
+              transition={{ duration: 0.5 }}
+              className="text-center relative"
             >
-              <div className="w-20 h-20 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-6">
-                <Shield size={36} className="text-blue-500" />
+              <NetworkBackground />
+
+              <div className="relative z-10">
+                {/* Animated shield icon with glow */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                  className="relative w-24 h-24 mx-auto mb-8"
+                >
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl bg-blue-400/20"
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200/60 flex items-center justify-center shadow-lg shadow-blue-100/50">
+                    <Shield size={42} className="text-blue-500" />
+                  </div>
+                  {/* Online indicator */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.8, type: "spring" }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white flex items-center justify-center"
+                  >
+                    <motion.div
+                      className="w-2 h-2 bg-emerald-200 rounded-full"
+                      animate={{ scale: [1, 0.5, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </motion.div>
+                </motion.div>
+
+                {/* Title with staggered reveal */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                >
+                  <p className="text-sm font-semibold text-blue-500 uppercase tracking-widest mb-3">
+                    Meet Warden
+                  </p>
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55, duration: 0.6 }}
+                  className="text-4xl font-bold text-gray-900 mb-4 leading-tight"
+                >
+                  Your Supply Chain Resilience
+                  <br />
+                  <span className="ob-text-gradient-blue">Agent Who Never Sleeps</span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7, duration: 0.6 }}
+                  className="text-gray-400 max-w-lg mx-auto mb-10 leading-relaxed"
+                >
+                  Warden autonomously monitors your supply chain, quantifies risk in real-time,
+                  and takes action before disruptions hit your bottom line.
+                </motion.p>
+
+                {/* Animated stats row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.6 }}
+                  className="flex items-center justify-center gap-8 mb-10"
+                >
+                  {[
+                    { value: 24, suffix: "/7", label: "Monitoring" },
+                    { value: 150, suffix: "+", label: "Risk signals/day" },
+                    { value: 95, suffix: "%", label: "Faster response" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="text-center">
+                      <div className="text-2xl font-bold text-gray-900 font-data">
+                        <AnimatedNumber target={stat.value} suffix={stat.suffix} />
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{stat.label}</div>
+                    </div>
+                  ))}
+                </motion.div>
+
+                {/* Feature cards with stagger */}
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: { transition: { staggerChildren: 0.15, delayChildren: 1.1 } },
+                  }}
+                  className="grid grid-cols-3 gap-3 mb-10 max-w-xl mx-auto"
+                >
+                  {FEATURES.map((feature) => (
+                    <motion.div
+                      key={feature.title}
+                      variants={{
+                        hidden: { opacity: 0, y: 20, scale: 0.95 },
+                        visible: { opacity: 1, y: 0, scale: 1 },
+                      }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      className="ob-card p-4 text-center cursor-default"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mx-auto mb-3">
+                        <feature.icon size={18} className="text-blue-500" />
+                      </div>
+                      <h3 className="text-xs font-semibold text-gray-900 mb-1">
+                        {feature.title}
+                      </h3>
+                      <p className="text-[11px] text-gray-400 leading-snug">
+                        {feature.description}
+                      </p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+
+                {/* CTA */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.6, duration: 0.5 }}
+                >
+                  <button onClick={next} className="ob-btn-primary mx-auto text-base px-8 py-3">
+                    Configure Your Agent <ArrowRight size={18} />
+                  </button>
+                  <p className="text-xs text-gray-300 mt-3">Takes about 2 minutes</p>
+                </motion.div>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                Welcome to Warden
-              </h1>
-              <p className="text-gray-500 max-w-md mx-auto mb-10 leading-relaxed">
-                Your autonomous supply chain resilience co-pilot. We&apos;ll ask a few
-                questions to tailor Warden to your operations.
-              </p>
-              <button
-                onClick={next}
-                className="ob-btn-primary mx-auto"
-              >
-                Get Started <ArrowRight size={16} />
-              </button>
             </motion.div>
           )}
 
