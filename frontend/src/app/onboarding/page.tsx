@@ -5,7 +5,6 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "
 import {
   ArrowRight,
   ArrowLeft,
-  Shield,
   Factory,
   Gauge,
   Truck,
@@ -21,6 +20,8 @@ import {
 import { useWardenStore } from "@/lib/store";
 import { updateCompanyProfile, getCompanyProfile } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import Typewriter from "@/components/onboarding/Typewriter";
+import GlowingOrb from "@/components/onboarding/GlowingOrb";
 
 /* ── Floating network nodes for welcome background ── */
 interface FloatingNode {
@@ -52,7 +53,12 @@ function generateNodes(count: number): FloatingNode[] {
 }
 
 function NetworkBackground() {
+  const [mounted, setMounted] = useState(false);
   const nodes = useMemo(() => generateNodes(24), []);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <div className="absolute inset-0 overflow-hidden pointer-events-none" />;
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -405,62 +411,43 @@ export default function OnboardingPage() {
               <NetworkBackground />
 
               <div className="relative z-10">
-                {/* Animated shield icon with glow */}
+                {/* Three.js glowing orb */}
                 <motion.div
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-                  className="relative w-24 h-24 mx-auto mb-8"
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="mb-6"
                 >
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl bg-blue-400/20"
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  <GlowingOrb size={200} />
+                </motion.div>
+
+                {/* Typewriter tagline */}
+                <div className="min-h-[120px] mb-6">
+                  <Typewriter
+                    startDelay={800}
+                    speed={35}
+                    delayBetweenLines={200}
+                    lines={[
+                      {
+                        text: "Meet Warden,",
+                        className: "text-sm font-semibold text-blue-500 uppercase tracking-widest mb-3",
+                      },
+                      {
+                        text: "Your Supply Chain Resilience",
+                        className: "text-4xl font-bold text-gray-900 leading-tight",
+                      },
+                      {
+                        text: "Agent Who Never Sleeps.",
+                        className: "text-4xl font-bold ob-text-gradient-blue leading-tight mb-4",
+                      },
+                    ]}
                   />
-                  <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200/60 flex items-center justify-center shadow-lg shadow-blue-100/50">
-                    <Shield size={42} className="text-blue-500" />
-                  </div>
-                  {/* Online indicator */}
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.8, type: "spring" }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white flex items-center justify-center"
-                  >
-                    <motion.div
-                      className="w-2 h-2 bg-emerald-200 rounded-full"
-                      animate={{ scale: [1, 0.5, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </motion.div>
-                </motion.div>
-
-                {/* Title with staggered reveal */}
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.6 }}
-                >
-                  <p className="text-sm font-semibold text-blue-500 uppercase tracking-widest mb-3">
-                    Meet Warden
-                  </p>
-                </motion.div>
-
-                <motion.h1
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.55, duration: 0.6 }}
-                  className="text-4xl font-bold text-gray-900 mb-4 leading-tight"
-                >
-                  Your Supply Chain Resilience
-                  <br />
-                  <span className="ob-text-gradient-blue">Agent Who Never Sleeps</span>
-                </motion.h1>
+                </div>
 
                 <motion.p
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.6 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 4.5, duration: 0.8 }}
                   className="text-gray-400 max-w-lg mx-auto mb-10 leading-relaxed"
                 >
                   Warden autonomously monitors your supply chain, quantifies risk in real-time,
@@ -471,7 +458,7 @@ export default function OnboardingPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9, duration: 0.6 }}
+                  transition={{ delay: 5, duration: 0.6 }}
                   className="flex items-center justify-center gap-8 mb-10"
                 >
                   {[
@@ -494,7 +481,7 @@ export default function OnboardingPage() {
                   animate="visible"
                   variants={{
                     hidden: {},
-                    visible: { transition: { staggerChildren: 0.15, delayChildren: 1.1 } },
+                    visible: { transition: { staggerChildren: 0.15, delayChildren: 5.5 } },
                   }}
                   className="grid grid-cols-3 gap-3 mb-10 max-w-xl mx-auto"
                 >
@@ -525,7 +512,7 @@ export default function OnboardingPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.6, duration: 0.5 }}
+                  transition={{ delay: 6.2, duration: 0.5 }}
                 >
                   <button onClick={next} className="ob-btn-primary mx-auto text-base px-8 py-3">
                     Configure Your Agent <ArrowRight size={18} />
