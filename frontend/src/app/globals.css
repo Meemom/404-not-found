@@ -228,6 +228,13 @@ body {
   min-height: 100vh;
 }
 
+.ob-text-gradient-blue {
+  background: linear-gradient(135deg, var(--w-blue), var(--w-blue-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .ob-card {
   background: var(--w-ob-surface);
   border: 1px solid var(--w-ob-border);
