@@ -20,14 +20,14 @@ import { updateCompanyProfile, getCompanyProfile } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const INDUSTRIES = [
-  { id: "automotive", label: "Automotive & Parts", icon: "🚗" },
-  { id: "electronics", label: "Electronics & Semiconductors", icon: "💻" },
-  { id: "pharma", label: "Pharmaceuticals", icon: "💊" },
-  { id: "aerospace", label: "Aerospace & Defense", icon: "✈️" },
-  { id: "food", label: "Food & Beverage", icon: "🍎" },
+  { id: "automotive", label: "Automotive & Transportation Components", icon: "🚗" },
+  { id: "electronics", label: "Electronics & Electrical Equipment", icon: "💻" },
+  { id: "machinery", label: "Industrial Machinery & Equipment", icon: "🏭" },
+  { id: "metal", label: "Metal Fabrication & Components", icon: "🔩" },
+  { id: "consumer goods", label: "Consumer Goods Manufacturing", icon: "🛍️" },
+  { id: "medical", label: "Medical Devices & Life Sciences Manufacturing", icon: "🏥" },
+  { id: "food", label: "Food & Beverage Processing", icon: "🍎" },
   { id: "chemicals", label: "Chemicals & Materials", icon: "🧪" },
-  { id: "textiles", label: "Textiles & Apparel", icon: "🧵" },
-  { id: "energy", label: "Energy & Utilities", icon: "⚡" },
 ];
 
 const RISK_LABELS: Record<string, { label: string; description: string; color: string }> = {
@@ -274,7 +274,7 @@ export default function OnboardingPage() {
             >
               <div className="flex items-center gap-3 mb-2">
                 <Factory size={20} className="text-blue-500" />
-                <h2 className="text-xl font-bold text-gray-900">Which industry are you in?</h2>
+                <h2 className="text-xl font-bold text-gray-900">What do you manufacture?</h2>
               </div>
               <p className="text-sm text-gray-400 mb-6">
                 This helps Warden tailor risk signals and disruption models.
