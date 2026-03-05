@@ -36,6 +36,7 @@ import {
   GraphExpandedView,
   RadarExpandedView,
 } from "@/components/visualization/overlays";
+import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 
 const nodeTypes = {
   perception: PerceptionNode,
@@ -59,6 +60,8 @@ export default function Home() {
     type: string;
     label: string;
   } | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarNodeClicked, setSidebarNodeClicked] = useState<string | null>(null);
 
   // Define nodes for the supply chain visualization
   const initialNodes: Node[] = [
@@ -327,6 +330,67 @@ export default function Home() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Sidebar data 
+  const sidebarNodes = [
+    { id: "perception", label: "Perception", type: "Perception Agent", health: 87 },
+    { id: "risk", label: "Risk Engine", type: "Risk Engine", health: 64 },
+    { id: "planning", label: "Planning", type: "Planning Agent", health: 92 },
+    { id: "stock", label: "Stock Monitor", type: "Inventory", health: 45 },
+    { id: "supplier", label: "Supplier Health", type: "Supplier Network", health: 72 },
+    { id: "graph", label: "Supply Graph", type: "Network Graph", health: 75 },
+    { id: "action", label: "Action Agent", type: "Action Agent", health: 88 },
+    { id: "order", label: "Orders", type: "Order Tracking", health: 58 },
+    { id: "radar", label: "Threat Radar", type: "Early Warning", health: 72 },
+  ];
+
+  const sidebarDisruptions = [
+    {
+      id: "DIS-2026-002",
+      title: "Taiwan Strait Shipping",
+      severity: "high" as const,
+      affectedSuppliers: 2,
+    },
+    {
+      id: "DIS-2026-003",
+      title: "Semiconductor Volatility",
+      severity: "medium" as const,
+      affectedSuppliers: 1,
+    },
+  ];
+
+  const sidebarActions = [
+    {
+      id: "act-demo-001",
+      title: "Supplier Outreach — Infineon",
+      urgency: "critical" as const,
+      type: "email" as const,
+    },
+    {
+      id: "act-demo-002",
+      title: "Executive Escalation",
+      urgency: "high" as const,
+      type: "escalation" as const,
+    },
+    {
+      id: "act-demo-003",
+      title: "BMW Proactive Communication",
+      urgency: "high" as const,
+      type: "email" as const,
+    },
+  ];
+
+  const handleSidebarNodeClick = (nodeId: string) => {
+    const nodeInfo = sidebarNodes.find((n) => n.id === nodeId);
+    if (nodeInfo) {
+      setSelectedNode({
+        id: nodeId,
+        type: nodeInfo.type,
+        label: nodeInfo.label,
+      });
+      setSidebarOpen(false);
+    }
+  };
+
   const expandedViewComponent = useMemo(() => {
     if (!selectedNode) return null;
 
@@ -350,6 +414,18 @@ export default function Home() {
 
   return (
     <div className="w-full h-screen flex flex-col bg-slate-950">
+      {/* Sidebar */}
+      <VisualizationSidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        nodes={sidebarNodes}
+        disruptions={sidebarDisruptions}
+        actions={sidebarActions}
+        onNodeClick={handleSidebarNodeClick}
+        overallHealth={73}
+        revenueAtRisk={4239000}
+        activeAlerts={3}
+      />
       {/* Header */}
       <div className="bg-gradient-to-b from-slate-900 to-slate-900/50 border-b border-slate-700 px-6 py-4 backdrop-blur">
         <div className="max-w-7xl mx-auto">
