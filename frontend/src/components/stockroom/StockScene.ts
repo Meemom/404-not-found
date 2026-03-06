@@ -1,10 +1,8 @@
 import * as THREE from "three";
-import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import type { InventoryItem } from "@/lib/types";
+import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import type { BOMItem } from "@/lib/types";
 import { createWarehouseLighting, flickerShelfLights } from "./StockLighting";
 import { createShelfUnit, type ShelfUnitResult } from "./ShelfUnit";
-import { createPopupCard, showPopup, hidePopup } from "./InventoryPopup";
-import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 // Layout: U-shape around center
 const SHELF_LAYOUT: Record<string, { pos: [number, number, number]; rot: number }> = {
@@ -22,41 +20,45 @@ export interface StockSceneState {
   raycaster: THREE.Raycaster;
   mouse: THREE.Vector2;
   shelves: ShelfUnitResult[];
-  popups: Map<string, CSS2DObject>;
   strips: THREE.Mesh[];
+  inventory: BOMItem[];
   cameraAngle: number;
   autoRotate: boolean;
-  hoverTimeout: ReturnType<typeof setTimeout> | null;
-  hoveredShelf: string | null;
+  focusedShelf: string | null;
+  targetCamPos: THREE.Vector3;
   animationId: number;
   mounted: boolean;
   container: HTMLDivElement;
+  onItemClick: ((item: BOMItem) => void) | null;
 }
+
+const ORBIT_DIST = 10;
+const ORBIT_Y = 4;
+const FOCUS_DIST = 6;
+const FOCUS_Y = 3;
+const LERP_SPEED = 0.04;
 
 export function initScene(
   container: HTMLDivElement,
-  inventory: InventoryItem[]
+  inventory: BOMItem[],
+  onItemClick?: (item: BOMItem) => void
 ): StockSceneState {
   const w = container.clientWidth;
   const h = container.clientHeight;
 
-  // Scene
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf1f5f9);
 
-  // Camera
   const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100);
-  camera.position.set(0, 4, 10);
+  camera.position.set(0, ORBIT_Y, ORBIT_DIST);
   camera.lookAt(0, 1.5, 0);
 
-  // WebGL Renderer
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(w, h);
   renderer.shadowMap.enabled = false;
   container.appendChild(renderer.domElement);
 
-  // CSS2D Renderer (overlay)
   const css2dRenderer = new CSS2DRenderer();
   css2dRenderer.setSize(w, h);
   css2dRenderer.domElement.style.position = "absolute";
@@ -65,42 +67,9 @@ export function initScene(
   css2dRenderer.domElement.style.pointerEvents = "none";
   container.appendChild(css2dRenderer.domElement);
 
-  // Room geometry
   createRoom(scene);
-
-  // Lighting
   const { strips } = createWarehouseLighting(scene);
-
-  // Group items by category
-  const categories = new Map<string, InventoryItem[]>();
-  for (const item of inventory) {
-    const list = categories.get(item.category) || [];
-    list.push(item);
-    categories.set(item.category, list);
-  }
-
-  // Build shelves and popups
-  const shelves: ShelfUnitResult[] = [];
-  const popups = new Map<string, CSS2DObject>();
-
-  for (const [cat, items] of categories) {
-    const layout = SHELF_LAYOUT[cat];
-    if (!layout) continue;
-
-    const shelf = createShelfUnit(
-      cat,
-      items,
-      new THREE.Vector3(...layout.pos),
-      layout.rot
-    );
-    scene.add(shelf.group);
-    shelves.push(shelf);
-
-    // Create popup per category (shows first item or aggregated)
-    const popup = createPopupCard(items[0]);
-    shelf.group.add(popup);
-    popups.set(cat, popup);
-  }
+  const { shelves } = buildShelves(scene, inventory);
 
   const state: StockSceneState = {
     renderer,
@@ -111,23 +80,30 @@ export function initScene(
     raycaster: new THREE.Raycaster(),
     mouse: new THREE.Vector2(),
     shelves,
-    popups,
     strips,
+    inventory,
     cameraAngle: 0,
     autoRotate: true,
-    hoverTimeout: null,
-    hoveredShelf: null,
+    focusedShelf: null,
+    targetCamPos: new THREE.Vector3(0, ORBIT_Y, ORBIT_DIST),
     animationId: 0,
     mounted: true,
     container,
+    onItemClick: onItemClick || null,
   };
 
-  // Events
   const onPointerMove = (e: PointerEvent) => {
     const rect = container.getBoundingClientRect();
     state.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     state.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     handleHover(state);
+  };
+
+  const onClick = (e: MouseEvent) => {
+    const rect = container.getBoundingClientRect();
+    state.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    state.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    handleClick(state);
   };
 
   const onResize = () => {
@@ -140,69 +116,68 @@ export function initScene(
   };
 
   container.addEventListener("pointermove", onPointerMove);
+  container.addEventListener("click", onClick);
   window.addEventListener("resize", onResize);
 
-  // Store cleanup references
   (state as unknown as Record<string, unknown>)._onPointerMove = onPointerMove;
+  (state as unknown as Record<string, unknown>)._onClick = onClick;
   (state as unknown as Record<string, unknown>)._onResize = onResize;
 
-  // Start animation
   animate(state);
-
   return state;
 }
 
+function buildShelves(scene: THREE.Scene, inventory: BOMItem[]) {
+  const categories = new Map<string, BOMItem[]>();
+  for (const item of inventory) {
+    const list = categories.get(item.category) || [];
+    list.push(item);
+    categories.set(item.category, list);
+  }
+
+  const shelves: ShelfUnitResult[] = [];
+  for (const [cat, items] of categories) {
+    const layout = SHELF_LAYOUT[cat];
+    if (!layout) continue;
+    const shelf = createShelfUnit(cat, items, new THREE.Vector3(...layout.pos), layout.rot);
+    scene.add(shelf.group);
+    shelves.push(shelf);
+  }
+  return { shelves };
+}
+
 function createRoom(scene: THREE.Scene) {
-  // Floor
   const floorGeo = new THREE.PlaneGeometry(14, 14);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0xd1d5db,
-    roughness: 0.8,
-  });
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.8 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = 0;
   scene.add(floor);
 
-  // Grid
   const grid = new THREE.GridHelper(14, 28, 0xbbbbbb, 0xcccccc);
   grid.position.y = 0.01;
   scene.add(grid);
 
-  // Semi-transparent walls
   const wallMat = new THREE.MeshStandardMaterial({
-    color: 0xe5e7eb,
-    transparent: true,
-    opacity: 0.3,
-    side: THREE.DoubleSide,
+    color: 0xe5e7eb, transparent: true, opacity: 0.3, side: THREE.DoubleSide,
   });
 
-  // Back wall
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(14, 5), wallMat);
   backWall.position.set(0, 2.5, -7);
   scene.add(backWall);
 
-  // Left wall
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(14, 5), wallMat);
   leftWall.rotation.y = Math.PI / 2;
   leftWall.position.set(-7, 2.5, 0);
   scene.add(leftWall);
 
-  // Right wall
   const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(14, 5), wallMat);
   rightWall.rotation.y = -Math.PI / 2;
   rightWall.position.set(7, 2.5, 0);
   scene.add(rightWall);
 
-  // Ceiling
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(14, 14),
-    new THREE.MeshStandardMaterial({
-      color: 0xf3f4f6,
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.DoubleSide,
-    })
+    new THREE.MeshStandardMaterial({ color: 0xf3f4f6, transparent: true, opacity: 0.2, side: THREE.DoubleSide })
   );
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = 5;
@@ -215,23 +190,20 @@ function animate(state: StockSceneState) {
 
   const elapsed = state.clock.getElapsedTime();
 
-  // Auto-rotation: camera orbits
+  // Steady 360 auto-rotation
   if (state.autoRotate) {
     state.cameraAngle += 0.002;
+    state.targetCamPos.set(
+      Math.sin(state.cameraAngle) * ORBIT_DIST,
+      ORBIT_Y,
+      Math.cos(state.cameraAngle) * ORBIT_DIST
+    );
   }
 
-  // Camera position from angle
-  if (state.autoRotate || !state.hoveredShelf) {
-    const dist = state.hoveredShelf ? 6 : 10;
-    const camY = state.hoveredShelf ? 3 : 4;
-    const targetX = Math.sin(state.cameraAngle) * dist;
-    const targetZ = Math.cos(state.cameraAngle) * dist;
-
-    // Lerp camera
-    state.camera.position.x += (targetX - state.camera.position.x) * 0.05;
-    state.camera.position.y += (camY - state.camera.position.y) * 0.05;
-    state.camera.position.z += (targetZ - state.camera.position.z) * 0.05;
-  }
+  // Smooth lerp camera toward target
+  state.camera.position.x += (state.targetCamPos.x - state.camera.position.x) * LERP_SPEED;
+  state.camera.position.y += (state.targetCamPos.y - state.camera.position.y) * LERP_SPEED;
+  state.camera.position.z += (state.targetCamPos.z - state.camera.position.z) * LERP_SPEED;
 
   state.camera.lookAt(0, 1.5, 0);
 
@@ -240,10 +212,7 @@ function animate(state: StockSceneState) {
   for (const shelf of state.shelves) {
     shelf.itemBoxes.forEach((boxes) => {
       for (const box of boxes) {
-        if (
-          box.userData.status === "critical" ||
-          box.userData.status === "below_reorder"
-        ) {
+        if (box.userData.status === "critical" || box.userData.status === "below_reorder") {
           criticalCategories.add(shelf.category);
           const mat = box.material as THREE.MeshStandardMaterial;
           mat.emissiveIntensity = 0.3 + Math.sin(elapsed * 3) * 0.3;
@@ -252,162 +221,121 @@ function animate(state: StockSceneState) {
     });
   }
 
-  // Flicker ceiling strips near critical shelves
   flickerShelfLights(state.strips, criticalCategories, elapsed);
-
-  // Proximity popups during auto-rotate
-  if (state.autoRotate) {
-    for (const shelf of state.shelves) {
-      const popup = state.popups.get(shelf.category);
-      if (!popup) continue;
-
-      // Angle between camera direction and shelf position
-      const camDir = new THREE.Vector3()
-        .subVectors(shelf.group.position, state.camera.position)
-        .normalize();
-      const lookDir = new THREE.Vector3(0, 0, -1).applyQuaternion(
-        state.camera.quaternion
-      );
-      const angle = Math.acos(Math.min(1, camDir.dot(lookDir)));
-
-      if (angle < (30 * Math.PI) / 180) {
-        showPopup(popup);
-      } else {
-        hidePopup(popup);
-      }
-    }
-  }
 
   state.renderer.render(state.scene, state.camera);
   state.css2dRenderer.render(state.scene, state.camera);
 }
 
-function handleHover(state: StockSceneState) {
-  state.raycaster.setFromCamera(state.mouse, state.camera);
-
-  // Collect all raycast meshes
-  const allMeshes: THREE.Mesh[] = [];
-  const meshToShelf = new Map<THREE.Mesh, ShelfUnitResult>();
-
+function getAllBoxMeshes(state: StockSceneState) {
+  const meshes: THREE.Mesh[] = [];
   for (const shelf of state.shelves) {
     for (const mesh of shelf.raycastMeshes) {
-      allMeshes.push(mesh);
-      meshToShelf.set(mesh, shelf);
+      meshes.push(mesh);
     }
   }
+  return meshes;
+}
 
-  const hits = state.raycaster.intersectObjects(allMeshes);
+function focusOnShelf(state: StockSceneState, shelf: ShelfUnitResult) {
+  state.autoRotate = false;
+  state.focusedShelf = shelf.category;
 
-  if (hits.length > 0) {
-    const hitMesh = hits[0].object as THREE.Mesh;
-    const shelf = meshToShelf.get(hitMesh);
+  // Position camera facing the shelf from the outside
+  const shelfPos = shelf.group.position;
+  const dir = new THREE.Vector3().subVectors(shelfPos, new THREE.Vector3(0, 0, 0)).normalize();
+  const camTarget = shelfPos.clone().add(dir.multiplyScalar(FOCUS_DIST));
+  camTarget.y = FOCUS_Y;
 
-    if (shelf && shelf.category !== state.hoveredShelf) {
-      // New hover
-      if (state.hoverTimeout) clearTimeout(state.hoverTimeout);
-      state.hoveredShelf = shelf.category;
-      state.autoRotate = false;
+  state.targetCamPos.copy(camTarget);
+  state.cameraAngle = Math.atan2(camTarget.x, camTarget.z);
+}
 
-      // Lerp camera toward shelf
-      const shelfPos = shelf.group.position;
-      const dir = new THREE.Vector3()
-        .subVectors(shelfPos, new THREE.Vector3(0, 0, 0))
-        .normalize();
-      const camTarget = shelfPos
-        .clone()
-        .add(dir.multiplyScalar(4))
-        .setY(3);
+function returnToOrbit(state: StockSceneState) {
+  state.focusedShelf = null;
+  state.autoRotate = true;
+}
 
-      // Set camera angle to face this shelf
-      state.cameraAngle = Math.atan2(camTarget.x, camTarget.z);
+function handleHover(state: StockSceneState) {
+  state.raycaster.setFromCamera(state.mouse, state.camera);
+  const hits = state.raycaster.intersectObjects(getAllBoxMeshes(state));
 
-      // Show popup
-      const popup = state.popups.get(shelf.category);
-      if (popup) showPopup(popup);
-
-      // Hide other popups
-      for (const [cat, p] of state.popups) {
-        if (cat !== shelf.category) hidePopup(p);
-      }
-
-      state.container.style.cursor = "pointer";
-    }
-  } else if (state.hoveredShelf) {
-    // Unhover: delay then resume
+  if (hits.length > 0 && (hits[0].object as THREE.Mesh).userData.itemId) {
+    state.container.style.cursor = "pointer";
+  } else {
     state.container.style.cursor = "default";
-    if (state.hoverTimeout) clearTimeout(state.hoverTimeout);
-    state.hoverTimeout = setTimeout(() => {
-      state.hoveredShelf = null;
-      state.autoRotate = true;
-      // Hide all popups
-      for (const popup of state.popups.values()) {
-        hidePopup(popup);
-      }
-    }, 2000);
   }
 }
 
-export function updateInventory(
-  state: StockSceneState,
-  inventory: InventoryItem[]
-) {
-  // Remove old shelves
+function handleClick(state: StockSceneState) {
+  state.raycaster.setFromCamera(state.mouse, state.camera);
+  const hits = state.raycaster.intersectObjects(getAllBoxMeshes(state));
+
+  if (hits.length > 0) {
+    const itemId = (hits[0].object as THREE.Mesh).userData.itemId;
+    if (itemId) {
+      // Find which shelf this item belongs to and focus on it
+      for (const shelf of state.shelves) {
+        if (shelf.itemBoxes.has(itemId)) {
+          focusOnShelf(state, shelf);
+          break;
+        }
+      }
+
+      // Fire the item click callback for the popup
+      if (state.onItemClick) {
+        const item = state.inventory.find((i) => i.component_id === itemId);
+        if (item) state.onItemClick(item);
+      }
+      return;
+    }
+  }
+
+  // Clicked empty space — return to 360 orbit
+  if (state.focusedShelf) {
+    returnToOrbit(state);
+  }
+}
+
+function removeShelfGroups(state: StockSceneState) {
   for (const shelf of state.shelves) {
+    // Remove all CSS2DObjects so their DOM elements are cleaned up
+    const toRemove: CSS2DObject[] = [];
+    shelf.group.traverse((obj) => {
+      if (obj instanceof CSS2DObject) {
+        toRemove.push(obj);
+      }
+    });
+    for (const obj of toRemove) {
+      obj.removeFromParent();
+      if (obj.element.parentNode) {
+        obj.element.parentNode.removeChild(obj.element);
+      }
+    }
     state.scene.remove(shelf.group);
   }
   state.shelves.length = 0;
-  state.popups.clear();
+}
 
-  // Group items by category
-  const categories = new Map<string, InventoryItem[]>();
-  for (const item of inventory) {
-    const list = categories.get(item.category) || [];
-    list.push(item);
-    categories.set(item.category, list);
-  }
+export function updateInventory(state: StockSceneState, inventory: BOMItem[]) {
+  removeShelfGroups(state);
+  state.inventory = inventory;
 
-  // Rebuild
-  for (const [cat, items] of categories) {
-    const layout = SHELF_LAYOUT[cat];
-    if (!layout) continue;
-
-    const shelf = createShelfUnit(
-      cat,
-      items,
-      new THREE.Vector3(...layout.pos),
-      layout.rot
-    );
-    state.scene.add(shelf.group);
-    state.shelves.push(shelf);
-
-    const popup = createPopupCard(items[0]);
-    shelf.group.add(popup);
-    state.popups.set(cat, popup);
-  }
+  const { shelves } = buildShelves(state.scene, inventory);
+  state.shelves = shelves;
 }
 
 export function dispose(state: StockSceneState) {
   state.mounted = false;
   cancelAnimationFrame(state.animationId);
 
-  if (state.hoverTimeout) clearTimeout(state.hoverTimeout);
+  const refs = state as unknown as Record<string, unknown>;
+  if (refs._onPointerMove) state.container.removeEventListener("pointermove", refs._onPointerMove as EventListener);
+  if (refs._onClick) state.container.removeEventListener("click", refs._onClick as EventListener);
+  if (refs._onResize) window.removeEventListener("resize", refs._onResize as EventListener);
 
-  // Remove event listeners
-  const onPointerMove = (state as unknown as Record<string, unknown>)
-    ._onPointerMove as EventListener;
-  const onResize = (state as unknown as Record<string, unknown>)
-    ._onResize as EventListener;
-  if (onPointerMove)
-    state.container.removeEventListener("pointermove", onPointerMove);
-  if (onResize) window.removeEventListener("resize", onResize);
-
-  // Dispose Three.js resources
   state.scene.traverse((obj: THREE.Object3D) => {
-    if (
-      obj instanceof THREE.Mesh ||
-      obj instanceof THREE.Line ||
-      obj instanceof THREE.Points
-    ) {
+    if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
       obj.geometry?.dispose();
       const m = obj.material;
       if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
@@ -416,10 +344,6 @@ export function dispose(state: StockSceneState) {
   });
 
   state.renderer.dispose();
-  if (state.container.contains(state.renderer.domElement)) {
-    state.container.removeChild(state.renderer.domElement);
-  }
-  if (state.container.contains(state.css2dRenderer.domElement)) {
-    state.container.removeChild(state.css2dRenderer.domElement);
-  }
+  if (state.container.contains(state.renderer.domElement)) state.container.removeChild(state.renderer.domElement);
+  if (state.container.contains(state.css2dRenderer.domElement)) state.container.removeChild(state.css2dRenderer.domElement);
 }
