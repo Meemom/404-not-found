@@ -768,7 +768,7 @@ export default function OnboardingPage() {
                       {suppliers.length > 1 && (
                         <button
                           onClick={() => removeSupplier(i)}
-                          className="text-gray-300 hover:text-red-400 transition-colors"
+                          className="text-gray-300 hover:text-pink-400 transition-colors"
                         >
                           <X size={16} />
                         </button>
@@ -901,7 +901,7 @@ export default function OnboardingPage() {
                       {slaPenalties.length > 1 && (
                         <button
                           onClick={() => removeSLAPenalty(i)}
-                          className="text-gray-300 hover:text-red-400 transition-colors"
+                          className="text-gray-300 hover:text-pink-400 transition-colors"
                         >
                           <X size={16} />
                         </button>

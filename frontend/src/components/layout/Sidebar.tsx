@@ -91,7 +91,7 @@ export function Sidebar() {
               />
               {sidebarOpen && <span>{item.label}</span>}
               {hasBadge && (
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-warden-coral text-white rounded-full">
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold bg-warden-pink text-white rounded-full">
                   {pendingActions.filter((a) => a.status === "pending").length}
                 </span>
               )}

@@ -28,7 +28,7 @@ export function getStatusColor(status: string): string {
     case "critical":
     case "disrupted":
     case "delayed":
-      return "text-warden-coral";
+      return "text-warden-pink";
     case "at_risk":
     case "below_reorder":
       return "text-warden-amber";
@@ -46,7 +46,7 @@ export function getStatusBg(status: string): string {
     case "critical":
     case "disrupted":
     case "delayed":
-      return "bg-warden-coral/10 border-warden-coral/30";
+      return "bg-warden-pink/10 border-warden-pink/30";
     case "at_risk":
     case "below_reorder":
       return "bg-warden-amber/10 border-warden-amber/30";
@@ -62,13 +62,13 @@ export function getStatusBg(status: string): string {
 export function getConfidenceColor(score: number): string {
   if (score >= 0.8) return "text-warden-teal";
   if (score >= 0.6) return "text-warden-amber";
-  return "text-warden-coral";
+  return "text-warden-pink";
 }
 
 export function getUrgencyColor(urgency: string): string {
   switch (urgency) {
     case "critical":
-      return "bg-warden-coral/20 text-warden-coral border-warden-coral/40";
+      return "bg-warden-pink/20 text-warden-pink border-warden-pink/40";
     case "high":
       return "bg-warden-amber/20 text-warden-amber border-warden-amber/40";
     case "medium":

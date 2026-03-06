@@ -17,10 +17,10 @@ export function CustomerExpandedView({ nodeId }: { nodeId: string }) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--w-ob-text)" }}>Active Orders</h3>
         <div className="space-y-2">
-          <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+          <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm" style={{ color: "var(--w-ob-text)" }}>#DE-8821</p>
-              <span className="text-xs font-bold text-red-600">SLA at risk</span>
+              <span className="text-xs font-bold text-pink-600">SLA at risk</span>
             </div>
             <p className="text-xs" style={{ color: "var(--w-ob-text-muted)" }}>&euro;2.25M &mdash; Due Mar 10 &mdash; 6 days remaining</p>
           </div>

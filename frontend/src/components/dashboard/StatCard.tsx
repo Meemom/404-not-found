@@ -11,7 +11,7 @@ interface StatCardProps {
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
   icon?: React.ReactNode;
-  accent?: "amber" | "teal" | "coral" | "blue";
+  accent?: "amber" | "teal" | "pink" | "blue";
   delay?: number;
 }
 
@@ -28,11 +28,11 @@ const accentMap = {
     text: "text-warden-teal",
     bg: "bg-warden-teal/10",
   },
-  coral: {
-    border: "border-warden-coral/20",
+  pink: {
+    border: "border-warden-pink/20",
     glow: "hover:shadow-[0_0_20px_rgba(255,107,107,0.1)]",
-    text: "text-warden-coral",
-    bg: "bg-warden-coral/10",
+    text: "text-warden-pink",
+    bg: "bg-warden-pink/10",
   },
   blue: {
     border: "border-warden-blue/20",
@@ -79,7 +79,7 @@ export function StatCard({
           <span
             className={`flex items-center gap-0.5 text-xs font-medium mb-1 ${
               trend === "up"
-                ? "text-warden-coral"
+                ? "text-warden-pink"
                 : trend === "down"
                 ? "text-warden-teal"
                 : "text-warden-text-tertiary"

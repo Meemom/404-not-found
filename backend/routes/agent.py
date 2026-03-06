@@ -228,8 +228,6 @@ async def _stream_agent_response(message: str, session_id: str) -> AsyncGenerato
 # ──────────────────────────────────────────────
 
 async def _stream_demo_scenario() -> AsyncGenerator[str, None]:
-    """Pre-scripted Taiwan Strait disruption scenario — 100% reliable."""
-
     # ── Step 1: Orchestrator starts ──
     yield _sse({
         "event": "agent_start",

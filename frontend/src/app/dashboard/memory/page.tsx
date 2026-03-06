@@ -24,14 +24,14 @@ function DisruptionCard({ disruption }: { disruption: Disruption }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       className={`relative pl-6 pb-8 border-l-2 ${
-        isActive ? "border-warden-coral/40" : "border-warden-border"
+        isActive ? "border-warden-pink/40" : "border-warden-border"
       }`}
     >
       {/* Timeline dot */}
       <div
         className={`absolute -left-[7px] top-0 w-3 h-3 rounded-full border-2 ${
           isActive
-            ? "bg-warden-coral border-warden-coral/40 animate-pulse"
+            ? "bg-warden-pink border-warden-pink/40 animate-pulse"
             : disruption.status === "resolved"
             ? "bg-warden-teal border-warden-teal/40"
             : "bg-warden-text-tertiary border-warden-border"
@@ -40,7 +40,7 @@ function DisruptionCard({ disruption }: { disruption: Disruption }) {
 
       <div
         className={`warden-card border p-4 ${
-          isActive ? "border-warden-coral/20" : "border-warden-border"
+          isActive ? "border-warden-pink/20" : "border-warden-border"
         }`}
       >
         <div className="flex items-start justify-between mb-2">
@@ -52,7 +52,7 @@ function DisruptionCard({ disruption }: { disruption: Disruption }) {
               <span
                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
                   isActive
-                    ? "bg-warden-coral/10 text-warden-coral"
+                    ? "bg-warden-pink/10 text-warden-pink"
                     : disruption.status === "resolved"
                     ? "bg-warden-teal/10 text-warden-teal"
                     : "bg-white/5 text-warden-text-tertiary"
@@ -200,8 +200,8 @@ export default function MemoryPage() {
           {active.length > 0 && (
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={14} className="text-warden-coral" />
-                <h2 className="text-xs font-semibold text-warden-coral uppercase tracking-wider">
+                <AlertTriangle size={14} className="text-warden-pink" />
+                <h2 className="text-xs font-semibold text-warden-pink uppercase tracking-wider">
                   Active ({active.length})
                 </h2>
               </div>

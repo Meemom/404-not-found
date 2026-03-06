@@ -16,7 +16,7 @@ export function TopBar() {
           <div
             className={`w-2.5 h-2.5 rounded-full ${
               (dashboard?.risk_score ?? 0) > 60
-                ? "bg-warden-coral animate-pulse"
+                ? "bg-warden-pink animate-pulse"
                 : (dashboard?.risk_score ?? 0) > 30
                 ? "bg-warden-amber"
                 : "bg-warden-teal"
@@ -56,7 +56,7 @@ export function TopBar() {
         <button className="relative p-2 rounded-lg hover:bg-warden-bg-elevated transition-colors">
           <Bell size={18} className="text-warden-text-secondary" />
           {(dashboard?.active_alerts ?? 0) > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-warden-coral text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-warden-pink text-white text-[9px] font-bold rounded-full flex items-center justify-center">
               {dashboard?.active_alerts}
             </span>
           )}

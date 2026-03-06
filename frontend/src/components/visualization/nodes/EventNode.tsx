@@ -23,7 +23,7 @@ interface EventNodeProps {
 export function EventNode({ data, id }: EventNodeProps) {
   const severityColor =
     data.severity >= 8
-      ? "#ef4444"
+      ? "#EC4899"
       : data.severity >= 5
         ? "#f59e0b"
         : "#3b82f6";
@@ -86,7 +86,7 @@ export function EventNode({ data, id }: EventNodeProps) {
         </div>
       </motion.div>
 
-      <Handle type="source" position={Position.Right} className="!bg-red-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Right} className="!bg-pink-500 !w-2 !h-2" />
     </div>
   );
 }

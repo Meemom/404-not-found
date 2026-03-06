@@ -11,7 +11,7 @@ interface SupplierHealthGridProps {
 function getHealthIcon(score: number) {
   if (score >= 80) return <CheckCircle size={14} className="text-warden-teal" />;
   if (score >= 50) return <AlertTriangle size={14} className="text-warden-amber" />;
-  return <XCircle size={14} className="text-warden-coral" />;
+  return <XCircle size={14} className="text-warden-pink" />;
 }
 
 function getHealthBar(score: number) {
@@ -20,7 +20,7 @@ function getHealthBar(score: number) {
       ? "bg-warden-teal"
       : score >= 50
       ? "bg-warden-amber"
-      : "bg-warden-coral";
+      : "bg-warden-pink";
 
   return (
     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -78,7 +78,7 @@ export function SupplierHealthGrid({ suppliers }: SupplierHealthGridProps) {
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                 supplier.status === "at_risk"
-                  ? "bg-warden-coral/10 text-warden-coral"
+                  ? "bg-warden-pink/10 text-warden-pink"
                   : supplier.status === "warning"
                   ? "bg-warden-amber/10 text-warden-amber"
                   : "bg-warden-teal/10 text-warden-teal"

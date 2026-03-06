@@ -156,7 +156,7 @@ async def globe_data():
         status_color = {
             "normal": "#0D9488",
             "at_risk": "#F59E0B",
-            "disrupted": "#EF4444",
+            "disrupted": "#EC4899",
         }
         nodes.append({
             "id": sup["supplier_id"],
@@ -193,7 +193,7 @@ async def globe_data():
                 arc_color = {
                     "on_track": "#0D9488",
                     "at_risk": "#F59E0B",
-                    "delayed": "#EF4444",
+                    "delayed": "#EC4899",
                 }
                 arcs.append({
                     "id": shipment["shipment_id"],

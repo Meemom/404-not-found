@@ -52,7 +52,7 @@ export interface SupplyGlobeProps {
 
 const NODE_COLORS = {
   hq: 0x3B82F6,
-  tier1: 0x8B5CF6,
+  tier1: 0x14b8a6,
   tier2: 0xA78BFA,
   disrupted: 0xEC4899,
 };
@@ -74,6 +74,9 @@ const ARC_OPACITY = {
   at_risk: 0.85,
   delayed: 0.9,
 };
+
+const INITIAL_FOCUS_LONGITUDE = 270;
+const INITIAL_GLOBE_ROTATION_Y = THREE.MathUtils.degToRad(INITIAL_FOCUS_LONGITUDE - 90);
 
 // UTILITIES
 
@@ -133,7 +136,7 @@ function createAtmosphere(): THREE.Group {
       varying vec3 vNormal;
       void main() {
         float intensity = pow(0.72 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 4.0);
-        gl_FragColor = vec4(0.3, 0.56, 1.0, 1.0) * intensity * 1.4;
+        gl_FragColor = vec4(0.7, 0.96, 1.0, 1.0) * intensity * 1.4;
       }
     `,
     side: THREE.BackSide,
@@ -304,7 +307,7 @@ export default function SupplyGlobe({
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
-    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.8);
+    const fill = new THREE.DirectionalLight(0xd9e9ff, 0.9);
     fill.position.set(-3, -1, 2);
     scene.add(fill);
 
@@ -314,6 +317,8 @@ export default function SupplyGlobe({
 
     // globe group holds all rotating parts so they rotate together
     const globeGroup = new THREE.Group();
+    globeGroup.rotation.y = INITIAL_GLOBE_ROTATION_Y;
+    globeGroup.rotation.x = THREE.MathUtils.degToRad(20);
     scene.add(globeGroup);
 
     scene.add(createStarfield());          // layer 1: starfield, scene level 

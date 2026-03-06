@@ -4,13 +4,13 @@ export function SupplierExpandedView({ nodeId }: { nodeId: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg p-4 border border-red-200 bg-red-50">
+        <div className="rounded-lg p-4 border border-pink-200 bg-pink-50">
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Health Score</p>
-          <p className="text-2xl font-bold text-red-600">35%</p>
+          <p className="text-2xl font-bold text-pink-600">35%</p>
         </div>
-        <div className="rounded-lg p-4 border border-red-200 bg-red-50">
+        <div className="rounded-lg p-4 border border-pink-200 bg-pink-50">
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Criticality</p>
-          <p className="text-2xl font-bold text-red-600">Critical</p>
+          <p className="text-2xl font-bold text-pink-600">Critical</p>
         </div>
         <div className="rounded-lg p-4 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Annual Spend</p>
@@ -21,10 +21,10 @@ export function SupplierExpandedView({ nodeId }: { nodeId: string }) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--w-ob-text)" }}>Parts Supplied</h3>
         <div className="space-y-2">
-          <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+          <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
             <div className="flex items-center justify-between">
               <p className="text-sm font-mono" style={{ color: "var(--w-ob-text)" }}>MCU-32BIT-AUTO</p>
-              <span className="text-xs font-bold text-red-600">8d stock</span>
+              <span className="text-xs font-bold text-pink-600">8d stock</span>
             </div>
             <p className="text-xs mt-1" style={{ color: "var(--w-ob-text-muted)" }}>70% single-sourced &mdash; critical shortage risk</p>
           </div>
@@ -51,7 +51,7 @@ export function SupplierExpandedView({ nodeId }: { nodeId: string }) {
 
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--w-ob-text)" }}>Active Disruptions</h3>
-        <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+        <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
           <p className="text-sm" style={{ color: "var(--w-ob-text)" }}>Taiwan Strait Shipping Congestion</p>
           <p className="text-xs mt-1" style={{ color: "var(--w-ob-text-muted)" }}>Severity 8/10 &mdash; 14-21 day delays on outbound shipments</p>
         </div>

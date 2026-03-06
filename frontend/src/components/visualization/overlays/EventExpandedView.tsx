@@ -4,9 +4,9 @@ export function EventExpandedView({ nodeId }: { nodeId: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg p-4 border border-red-200 bg-red-50">
+        <div className="rounded-lg p-4 border border-pink-200 bg-pink-50">
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Severity</p>
-          <p className="text-2xl font-bold text-red-600">8/10</p>
+          <p className="text-2xl font-bold text-pink-600">8/10</p>
         </div>
         <div className="rounded-lg p-4 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Confidence</p>
@@ -21,10 +21,10 @@ export function EventExpandedView({ nodeId }: { nodeId: string }) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--w-ob-text)" }}>Affected Suppliers</h3>
         <div className="space-y-2">
-          <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+          <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
             <div className="flex items-center justify-between">
               <p className="text-sm" style={{ color: "var(--w-ob-text)" }}>TSMC (Taiwan)</p>
-              <span className="text-xs font-bold text-red-600">Direct</span>
+              <span className="text-xs font-bold text-pink-600">Direct</span>
             </div>
             <p className="text-xs mt-1" style={{ color: "var(--w-ob-text-muted)" }}>Primary semiconductor supplier &mdash; shipments halted</p>
           </div>

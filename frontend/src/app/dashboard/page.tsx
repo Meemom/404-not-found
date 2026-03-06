@@ -85,7 +85,7 @@ export default function DashboardPage() {
           value={formatCompact(dashboard.revenue_at_risk_eur)}
           subtitle={`${dashboard.sla_at_risk_orders?.length ?? 0} orders at risk`}
           icon={<DollarSign size={16} />}
-          accent="coral"
+          accent="pink"
           delay={0.1}
         />
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
           }
           icon={<Shield size={16} />}
           accent={
-            (dashboard.active_alerts ?? 0) > 0 ? "coral" : "teal"
+            (dashboard.active_alerts ?? 0) > 0 ? "pink" : "teal"
           }
           delay={0.2}
         />

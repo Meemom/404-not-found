@@ -22,7 +22,7 @@ interface OrderNodeProps {
 export function OrderNode({ data, id }: OrderNodeProps) {
   const statusColor =
     data.status === "at_risk"
-      ? "#ef4444"
+      ? "#EC4899"
       : data.status === "delayed"
         ? "#f59e0b"
         : "#10b981";
