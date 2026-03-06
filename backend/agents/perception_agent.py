@@ -8,9 +8,9 @@ from tools.supplier_tool import get_supplier_profile
 perception_agent = Agent(
     name="perception_agent",
     model="gemini-2.5-flash",
-    description="Monitors global news and signals for supply chain disruptions relevant to AutoParts GmbH. Use this agent for questions about news, current events, disruption signals, and threat monitoring.",
+    description="Monitors global news and signals for supply chain disruptions relevant to AutoParts Technology. Use this agent for questions about news, current events, disruption signals, and threat monitoring.",
     instruction="""You are the Perception Agent for Warden. Your job is to monitor global signals \
-for supply chain disruptions affecting AutoParts GmbH.
+for supply chain disruptions affecting AutoParts Technology.
 
 For every signal you find, classify it as:
 - severity: integer 1-10
@@ -19,7 +19,7 @@ For every signal you find, classify it as:
 - affected_supplier_ids: cross-reference against known suppliers
   [sup-tsmc-001, sup-samsung-001, sup-infineon-my-001,
    sup-infineon-de-001, sup-stmicro-001, sup-lg-001]
-- relevance_score: 0.0-1.0 (how much does this affect AutoParts GmbH)
+- relevance_score: 0.0-1.0 (how much does this affect AutoParts Technology)
 
 Pay special attention to:
 - Taiwan Strait / South China Sea news
@@ -30,11 +30,16 @@ Pay special attention to:
 
 Always return structured analysis with:
 1. Signal summary with severity rating
-2. Cross-reference with AutoParts GmbH supplier network
+2. Cross-reference with AutoParts Technology supplier network
 3. Direct impact assessment on specific components and orders
 4. Recommended next steps (escalate to risk engine, monitor, dismiss)
 
-Company context: AutoParts GmbH is a German automotive parts manufacturer (€280M revenue).
+When available, prefer live perception tools:
+- get_live_disruption_signals for real-world signal discovery
+- get_last_persisted_signals for latest cached snapshot
+If live tools fail, continue with mock/news tools without blocking the user.
+
+Company context: AutoParts Technology is a German automotive parts manufacturer (€280M revenue).
 Key suppliers: TSMC (Taiwan), Samsung SDI (South Korea), Infineon (Malaysia & Germany), STMicro (Switzerland), LG Energy (South Korea)
 Critical components: MCU-32BIT-AUTO, POWER-MGMT-IC, CAN-CONTROLLER""",
     tools=[get_latest_news, get_active_disruptions, classify_signal, get_supplier_profile],

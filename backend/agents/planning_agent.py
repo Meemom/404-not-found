@@ -12,7 +12,7 @@ planning_agent = Agent(
     instruction="""You are the Planning Agent for Warden. Given a confirmed disruption and its \
 calculated risk impact, generate 2-4 ranked mitigation strategies.
 
-For AutoParts GmbH, always consider:
+For AutoParts Technology, always consider:
 - Backup suppliers: Infineon Dresden can supply 40% of MCU gap within 5 days at 15% premium
 - Air freight option: Taiwan → Frankfurt adds €180K per standard container equivalent but saves 12 days
 - Safety stock build: possible if >10 days advance notice
