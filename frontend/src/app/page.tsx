@@ -262,17 +262,7 @@ export default function Home() {
       `${prefix}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`;
 
     // ── EVENTS (from scan or fallback) ──
-    const eventsList = scannedEvents.length > 0
-      ? scannedEvents.map((evt, i) => ({
-          id: toId("evt", evt.region || `event-${i}`),
-          evtId: `EVT-${String(i + 1).padStart(3, "0")}`,
-          type: evt.type,
-          region: evt.region,
-          severity: evt.severity,
-          confidence: evt.confidence ?? 75,
-          expected_delay_days: evt.expected_delay_days ?? 7,
-        }))
-      : [
+    const eventsList = [
           { id: "evt-taiwan", evtId: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
           { id: "evt-semi", evtId: "EVT-002", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
         ];
@@ -586,13 +576,7 @@ export default function Home() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
         onTabChange={setActiveTab}
-        events={scannedEvents.length > 0
-          ? scannedEvents.map((evt, i) => ({
-              id: `evt-${evt.region?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `event-${i}`}`,
-              type: evt.type, region: evt.region, severity: evt.severity,
-              confidence: evt.confidence ?? 75, expected_delay_days: evt.expected_delay_days ?? 7,
-            }))
-          : [
+        events={[
               { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
               { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
             ]
