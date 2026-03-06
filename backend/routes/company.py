@@ -35,6 +35,17 @@ async def update_company_profile(updates: dict):
     return {"status": "updated", "profile": _company_profile}
 
 
+@router.get("/uploaded-data")
+async def get_uploaded_data():
+    """Get data uploaded during onboarding (suppliers, SLA, BOM)."""
+    profile = _load_company()
+    return {
+        "suppliers": profile.get("uploaded_suppliers", []),
+        "sla": profile.get("uploaded_sla", []),
+        "bom": profile.get("uploaded_bom", []),
+    }
+
+
 @router.get("/customers")
 async def get_customers():
     """Get customer list."""

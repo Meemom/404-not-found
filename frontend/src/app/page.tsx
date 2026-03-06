@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ReactFlow, {
   Node,
   Edge,
@@ -33,7 +34,7 @@ import { VisualizationSidebar } from "@/components/visualization/VisualizationSi
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
 import SlashTerminal from "@/components/copilot/SlashTerminal";
 import { useWardenStore } from "@/lib/store";
-import { getCompanyProfile, getOperationsOverview, getPendingActions } from "@/lib/api";
+import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploadedData } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
 import type { BOMItem } from "@/lib/types";
 
@@ -179,6 +180,8 @@ const COL = { event: 0, supplier: 280, part: 560, order: 840, customer: 1120 };
 const ROW_GAP = 160;
 
 export default function Home() {
+  const router = useRouter();
+  const { setCompany, setDashboard, setPendingActions, onboarded } = useWardenStore();
   const [selectedNode, setSelectedNode] = useState<{
     id: string;
     type: string;
@@ -186,19 +189,33 @@ export default function Home() {
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<ViewTab>("graph");
-  const { setCompany, setDashboard, setPendingActions } = useWardenStore();
+  const [uploadedSuppliers, setUploadedSuppliers] = useState<any[]>([]);
+  const [uploadedSLA, setUploadedSLA] = useState<any[]>([]);
+  const [uploadedBOM, setUploadedBOM] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!onboarded) {
+      router.replace("/onboarding");
+    }
+  }, [onboarded, router]);
+
+  useEffect(() => {
+    if (!onboarded) return;
+
     async function loadInitialData() {
       try {
-        const [company, overview, actions] = await Promise.all([
+        const [company, overview, actions, uploaded] = await Promise.all([
           getCompanyProfile(),
           getOperationsOverview(),
           getPendingActions(),
+          getUploadedData(),
         ]);
         setCompany(company);
         setDashboard(overview);
         setPendingActions(actions);
+        if (uploaded.suppliers?.length) setUploadedSuppliers(uploaded.suppliers);
+        if (uploaded.sla?.length) setUploadedSLA(uploaded.sla);
+        if (uploaded.bom?.length) setUploadedBOM(uploaded.bom);
       } catch (err) {
         console.error("Failed to load root data:", err);
       }
@@ -220,249 +237,214 @@ export default function Home() {
     }, 30_000);
 
     return () => clearInterval(interval);
-  }, [setCompany, setDashboard, setPendingActions]);
+  }, [onboarded, setCompany, setDashboard, setPendingActions]);
 
-  const openOverlay = (id: string, type: string, label: string) => {
+  const openOverlay = useCallback((id: string, type: string, label: string) => {
     setSelectedNode({ id, type, label });
-  };
+  }, []);
 
-  // ── NODES ──
-  const initialNodes: Node[] = [
-    // EVENTS (column 0)
-    {
-      id: "evt-taiwan",
-      type: "event",
-      position: { x: COL.event, y: 0 },
-      data: {
-        id: "EVT-001",
-        type: "Geopolitical",
-        region: "Taiwan Strait Shipping Congestion",
-        severity: 8,
-        confidence: 85,
-        expected_delay_days: 14,
-        start_time: "2026-03-01",
-        onClick: () => openOverlay("evt-taiwan", "Event", "Taiwan Strait Disruption"),
-      },
-    },
-    {
-      id: "evt-semi",
-      type: "event",
-      position: { x: COL.event, y: ROW_GAP * 1.5 },
-      data: {
-        id: "EVT-002",
-        type: "Market",
-        region: "Semiconductor Price Surge",
-        severity: 5,
-        confidence: 72,
-        expected_delay_days: 7,
-        start_time: "2026-02-28",
-        onClick: () => openOverlay("evt-semi", "Event", "Semiconductor Price Surge"),
-      },
-    },
+  // ── Build graph nodes & edges, merging hardcoded + uploaded data ──
+  const { initialNodes, initialEdges } = useMemo(() => {
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
 
-    // SUPPLIERS (column 1)
-    {
-      id: "sup-tsmc",
-      type: "supplier",
-      position: { x: COL.supplier, y: 0 },
-      data: {
-        id: "SUP-001",
-        name: "TSMC",
-        country: "Taiwan",
-        health_score: 35,
-        criticality: "critical",
-        onClick: () => openOverlay("sup-tsmc", "Supplier", "TSMC"),
-      },
-    },
-    {
-      id: "sup-infineon",
-      type: "supplier",
-      position: { x: COL.supplier, y: ROW_GAP },
-      data: {
-        id: "SUP-002",
-        name: "Infineon",
-        country: "Germany",
-        health_score: 82,
-        criticality: "high",
-        onClick: () => openOverlay("sup-infineon", "Supplier", "Infineon Technologies"),
-      },
-    },
-    {
-      id: "sup-stmicro",
-      type: "supplier",
-      position: { x: COL.supplier, y: ROW_GAP * 2 },
-      data: {
-        id: "SUP-003",
-        name: "STMicro",
-        country: "Switzerland",
-        health_score: 90,
-        criticality: "medium",
-        onClick: () => openOverlay("sup-stmicro", "Supplier", "STMicroelectronics"),
-      },
-    },
+    // Track existing IDs to avoid duplicates when merging uploaded data
+    const supplierIds = new Set<string>();
+    const partIds = new Set<string>();
+    const customerIds = new Set<string>();
 
-    // PARTS (column 2)
-    {
-      id: "part-mcu",
-      type: "part",
-      position: { x: COL.part, y: 0 },
-      data: {
-        id: "MCU-32BIT-AUTO",
-        name: "MCU-32BIT-AUTO",
-        criticality: "critical",
-        inventory_days: 8,
-        lead_time_days: 21,
-        safety_stock_days: 14,
-        onClick: () => openOverlay("part-mcu", "Part", "MCU-32BIT-AUTO"),
-      },
-    },
-    {
-      id: "part-pmic",
-      type: "part",
-      position: { x: COL.part, y: ROW_GAP },
-      data: {
-        id: "POWER-MGMT-IC",
-        name: "POWER-MGMT-IC",
-        criticality: "high",
-        inventory_days: 18,
-        lead_time_days: 14,
-        safety_stock_days: 10,
-        onClick: () => openOverlay("part-pmic", "Part", "POWER-MGMT-IC"),
-      },
-    },
-    {
-      id: "part-can",
-      type: "part",
-      position: { x: COL.part, y: ROW_GAP * 2 },
-      data: {
-        id: "CAN-CONTROLLER",
-        name: "CAN-CONTROLLER",
-        criticality: "medium",
-        inventory_days: 30,
-        lead_time_days: 10,
-        safety_stock_days: 7,
-        onClick: () => openOverlay("part-can", "Part", "CAN-CONTROLLER"),
-      },
-    },
+    // Helper to make safe IDs from names
+    const toId = (prefix: string, name: string) =>
+      `${prefix}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`;
 
-    // ORDERS (column 3)
-    {
-      id: "ord-bmw",
-      type: "order",
-      position: { x: COL.order, y: 0 },
-      data: {
-        id: "#DE-8821",
-        customer: "BMW AG",
-        due_date: "Mar 10",
-        revenue: 2_250_000,
-        margin: 18,
-        status: "at_risk",
-        onClick: () => openOverlay("ord-bmw", "Order", "BMW Order #DE-8821"),
+    // ── EVENTS (always hardcoded) ──
+    nodes.push(
+      {
+        id: "evt-taiwan",
+        type: "event",
+        position: { x: COL.event, y: 0 },
+        data: {
+          id: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion",
+          severity: 8, confidence: 85, expected_delay_days: 14, start_time: "2026-03-01",
+          onClick: () => openOverlay("evt-taiwan", "Event", "Taiwan Strait Disruption"),
+        },
       },
-    },
-    {
-      id: "ord-vw",
-      type: "order",
-      position: { x: COL.order, y: ROW_GAP },
-      data: {
-        id: "#DE-9103",
-        customer: "VW Group",
-        due_date: "Mar 21",
-        revenue: 1_989_000,
-        margin: 15,
-        status: "at_risk",
-        onClick: () => openOverlay("ord-vw", "Order", "VW Order #DE-9103"),
+      {
+        id: "evt-semi",
+        type: "event",
+        position: { x: COL.event, y: ROW_GAP * 1.5 },
+        data: {
+          id: "EVT-002", type: "Market", region: "Semiconductor Price Surge",
+          severity: 5, confidence: 72, expected_delay_days: 7, start_time: "2026-02-28",
+          onClick: () => openOverlay("evt-semi", "Event", "Semiconductor Price Surge"),
+        },
       },
-    },
-    {
-      id: "ord-bosch",
-      type: "order",
-      position: { x: COL.order, y: ROW_GAP * 2 },
-      data: {
-        id: "#DE-9250",
-        customer: "Bosch GmbH",
-        due_date: "Apr 1",
-        revenue: 710_000,
-        margin: 22,
-        status: "on_track",
-        onClick: () => openOverlay("ord-bosch", "Order", "Bosch Order #DE-9250"),
-      },
-    },
+    );
 
-    // CUSTOMERS (column 4)
-    {
-      id: "cust-bmw",
-      type: "customer",
-      position: { x: COL.customer, y: 0 },
-      data: {
-        id: "CUST-001",
-        name: "BMW AG",
-        annual_revenue: 85_000_000,
-        sla_days: 14,
-        onClick: () => openOverlay("cust-bmw", "Customer", "BMW AG"),
-      },
-    },
-    {
-      id: "cust-vw",
-      type: "customer",
-      position: { x: COL.customer, y: ROW_GAP },
-      data: {
-        id: "CUST-002",
-        name: "VW Group",
-        annual_revenue: 72_000_000,
-        sla_days: 21,
-        onClick: () => openOverlay("cust-vw", "Customer", "Volkswagen Group"),
-      },
-    },
-    {
-      id: "cust-bosch",
-      type: "customer",
-      position: { x: COL.customer, y: ROW_GAP * 2 },
-      data: {
-        id: "CUST-003",
-        name: "Bosch GmbH",
-        annual_revenue: 31_000_000,
-        sla_days: 30,
-        onClick: () => openOverlay("cust-bosch", "Customer", "Bosch GmbH"),
-      },
-    },
-  ];
+    // ── HARDCODED SUPPLIERS ──
+    const hardcodedSuppliers = [
+      { id: "sup-tsmc", supId: "SUP-001", name: "TSMC", country: "Taiwan", health_score: 35, criticality: "critical" },
+      { id: "sup-infineon", supId: "SUP-002", name: "Infineon", country: "Germany", health_score: 82, criticality: "high" },
+      { id: "sup-stmicro", supId: "SUP-003", name: "STMicro", country: "Switzerland", health_score: 90, criticality: "medium" },
+    ];
+    let supplierY = 0;
+    for (const s of hardcodedSuppliers) {
+      supplierIds.add(s.id);
+      nodes.push({
+        id: s.id, type: "supplier",
+        position: { x: COL.supplier, y: supplierY },
+        data: { id: s.supId, name: s.name, country: s.country, health_score: s.health_score, criticality: s.criticality,
+          onClick: () => openOverlay(s.id, "Supplier", s.name) },
+      });
+      supplierY += ROW_GAP;
+    }
 
-  // ── EDGES ──
-  const initialEdges: Edge[] = [
-    // AFFECTS: event → supplier
-    { id: "e-tw-tsmc", source: "evt-taiwan", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
-    { id: "e-tw-inf", source: "evt-taiwan", target: "sup-infineon", type: "animated", data: { relationship: "affects" } },
-    { id: "e-semi-tsmc", source: "evt-semi", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
+    // ── UPLOADED SUPPLIERS ──
+    for (const s of uploadedSuppliers) {
+      const id = toId("sup", s.name);
+      if (supplierIds.has(id)) continue;
+      supplierIds.add(id);
+      nodes.push({
+        id, type: "supplier",
+        position: { x: COL.supplier, y: supplierY },
+        data: {
+          id: id.toUpperCase(), name: s.name, country: s.country || "Unknown",
+          health_score: 70, criticality: "medium",
+          onClick: () => openOverlay(id, "Supplier", s.name),
+        },
+      });
+      supplierY += ROW_GAP;
+    }
 
-    // SUPPLIES: supplier → part
-    { id: "e-tsmc-mcu", source: "sup-tsmc", target: "part-mcu", type: "animated", data: { relationship: "supplies" } },
-    { id: "e-tsmc-pmic", source: "sup-tsmc", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
-    { id: "e-inf-can", source: "sup-infineon", target: "part-can", type: "animated", data: { relationship: "supplies" } },
-    { id: "e-stm-pmic", source: "sup-stmicro", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
+    // ── HARDCODED PARTS ──
+    const hardcodedParts = [
+      { id: "part-mcu", partId: "MCU-32BIT-AUTO", name: "MCU-32BIT-AUTO", criticality: "critical", inventory_days: 8, lead_time_days: 21, safety_stock_days: 14 },
+      { id: "part-pmic", partId: "POWER-MGMT-IC", name: "POWER-MGMT-IC", criticality: "high", inventory_days: 18, lead_time_days: 14, safety_stock_days: 10 },
+      { id: "part-can", partId: "CAN-CONTROLLER", name: "CAN-CONTROLLER", criticality: "medium", inventory_days: 30, lead_time_days: 10, safety_stock_days: 7 },
+    ];
+    let partY = 0;
+    for (const p of hardcodedParts) {
+      partIds.add(p.id);
+      nodes.push({
+        id: p.id, type: "part",
+        position: { x: COL.part, y: partY },
+        data: { id: p.partId, name: p.name, criticality: p.criticality, inventory_days: p.inventory_days,
+          lead_time_days: p.lead_time_days, safety_stock_days: p.safety_stock_days,
+          onClick: () => openOverlay(p.id, "Part", p.name) },
+      });
+      partY += ROW_GAP;
+    }
 
-    // REQUIRED_FOR: part → order
-    { id: "e-mcu-bmw", source: "part-mcu", target: "ord-bmw", type: "animated", data: { relationship: "required_for" } },
-    { id: "e-mcu-vw", source: "part-mcu", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
-    { id: "e-pmic-vw", source: "part-pmic", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
-    { id: "e-can-bosch", source: "part-can", target: "ord-bosch", type: "animated", data: { relationship: "required_for" } },
+    // ── UPLOADED BOM (parts) ──
+    for (const b of uploadedBOM) {
+      const name = b.description || b.stock_keeping_unit || "Unknown Part";
+      const id = toId("part", b.stock_keeping_unit || name);
+      if (partIds.has(id)) continue;
+      partIds.add(id);
+      nodes.push({
+        id, type: "part",
+        position: { x: COL.part, y: partY },
+        data: {
+          id: b.stock_keeping_unit || id.toUpperCase(), name: name.length > 30 ? name.slice(0, 30) + "..." : name,
+          criticality: "medium", inventory_days: b.lead_time_days || 14,
+          lead_time_days: b.lead_time_days || 14, safety_stock_days: 7,
+          onClick: () => openOverlay(id, "Part", name),
+        },
+      });
 
-    // BELONGS_TO: order → customer
-    { id: "e-bmw-ord-cust", source: "ord-bmw", target: "cust-bmw", type: "animated", data: { relationship: "belongs_to" } },
-    { id: "e-vw-ord-cust", source: "ord-vw", target: "cust-vw", type: "animated", data: { relationship: "belongs_to" } },
-    { id: "e-bosch-ord-cust", source: "ord-bosch", target: "cust-bosch", type: "animated", data: { relationship: "belongs_to" } },
+      // Auto-link uploaded BOM part to its supplier if we have the supplier node
+      if (b.supplier_name) {
+        const supId = toId("sup", b.supplier_name);
+        if (supplierIds.has(supId)) {
+          edges.push({
+            id: `e-${supId}-${id}`, source: supId, target: id,
+            type: "animated", data: { relationship: "supplies" },
+          });
+        }
+      }
 
-    // ALTERNATIVE_SUPPLIER: supplier → supplier (dashed)
-    {
-      id: "e-inf-alt-tsmc",
-      source: "sup-infineon",
-      sourceHandle: "alt-source",
-      target: "sup-tsmc",
-      targetHandle: "alt-target",
-      type: "animated",
-      data: { relationship: "alternative_supplier" },
-    },
-  ];
+      partY += ROW_GAP;
+    }
+
+    // ── HARDCODED ORDERS ──
+    const hardcodedOrders = [
+      { id: "ord-bmw", ordId: "#DE-8821", customer: "BMW AG", due_date: "Mar 10", revenue: 2_250_000, margin: 18, status: "at_risk" },
+      { id: "ord-vw", ordId: "#DE-9103", customer: "VW Group", due_date: "Mar 21", revenue: 1_989_000, margin: 15, status: "at_risk" },
+      { id: "ord-bosch", ordId: "#DE-9250", customer: "Bosch GmbH", due_date: "Apr 1", revenue: 710_000, margin: 22, status: "on_track" },
+    ];
+    let orderY = 0;
+    for (const o of hardcodedOrders) {
+      nodes.push({
+        id: o.id, type: "order",
+        position: { x: COL.order, y: orderY },
+        data: { id: o.ordId, customer: o.customer, due_date: o.due_date, revenue: o.revenue, margin: o.margin, status: o.status,
+          onClick: () => openOverlay(o.id, "Order", `${o.customer} Order ${o.ordId}`) },
+      });
+      orderY += ROW_GAP;
+    }
+
+    // ── HARDCODED CUSTOMERS ──
+    const hardcodedCustomers = [
+      { id: "cust-bmw", custId: "CUST-001", name: "BMW AG", annual_revenue: 85_000_000, sla_days: 14 },
+      { id: "cust-vw", custId: "CUST-002", name: "VW Group", annual_revenue: 72_000_000, sla_days: 21 },
+      { id: "cust-bosch", custId: "CUST-003", name: "Bosch GmbH", annual_revenue: 31_000_000, sla_days: 30 },
+    ];
+    let customerY = 0;
+    for (const c of hardcodedCustomers) {
+      customerIds.add(c.id);
+      nodes.push({
+        id: c.id, type: "customer",
+        position: { x: COL.customer, y: customerY },
+        data: { id: c.custId, name: c.name, annual_revenue: c.annual_revenue, sla_days: c.sla_days,
+          onClick: () => openOverlay(c.id, "Customer", c.name) },
+      });
+      customerY += ROW_GAP;
+    }
+
+    // ── UPLOADED SLA (customers) ──
+    for (const s of uploadedSLA) {
+      const name = s.customer || "Unknown Customer";
+      const id = toId("cust", name);
+      if (customerIds.has(id)) continue;
+      customerIds.add(id);
+      nodes.push({
+        id, type: "customer",
+        position: { x: COL.customer, y: customerY },
+        data: {
+          id: id.toUpperCase(), name, annual_revenue: s.annual_revenue || 0,
+          sla_days: s.sla_days || 30,
+          onClick: () => openOverlay(id, "Customer", name),
+        },
+      });
+      customerY += ROW_GAP;
+    }
+
+    // ── HARDCODED EDGES ──
+    edges.push(
+      // AFFECTS: event → supplier
+      { id: "e-tw-tsmc", source: "evt-taiwan", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
+      { id: "e-tw-inf", source: "evt-taiwan", target: "sup-infineon", type: "animated", data: { relationship: "affects" } },
+      { id: "e-semi-tsmc", source: "evt-semi", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
+      // SUPPLIES: supplier → part
+      { id: "e-tsmc-mcu", source: "sup-tsmc", target: "part-mcu", type: "animated", data: { relationship: "supplies" } },
+      { id: "e-tsmc-pmic", source: "sup-tsmc", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
+      { id: "e-inf-can", source: "sup-infineon", target: "part-can", type: "animated", data: { relationship: "supplies" } },
+      { id: "e-stm-pmic", source: "sup-stmicro", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
+      // REQUIRED_FOR: part → order
+      { id: "e-mcu-bmw", source: "part-mcu", target: "ord-bmw", type: "animated", data: { relationship: "required_for" } },
+      { id: "e-mcu-vw", source: "part-mcu", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
+      { id: "e-pmic-vw", source: "part-pmic", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
+      { id: "e-can-bosch", source: "part-can", target: "ord-bosch", type: "animated", data: { relationship: "required_for" } },
+      // BELONGS_TO: order → customer
+      { id: "e-bmw-ord-cust", source: "ord-bmw", target: "cust-bmw", type: "animated", data: { relationship: "belongs_to" } },
+      { id: "e-vw-ord-cust", source: "ord-vw", target: "cust-vw", type: "animated", data: { relationship: "belongs_to" } },
+      { id: "e-bosch-ord-cust", source: "ord-bosch", target: "cust-bosch", type: "animated", data: { relationship: "belongs_to" } },
+      // ALTERNATIVE_SUPPLIER
+      { id: "e-inf-alt-tsmc", source: "sup-infineon", sourceHandle: "alt-source", target: "sup-tsmc", targetHandle: "alt-target", type: "animated", data: { relationship: "alternative_supplier" } },
+    );
+
+    return { initialNodes: nodes, initialEdges: edges };
+  }, [uploadedSuppliers, uploadedSLA, uploadedBOM, openOverlay]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -479,6 +461,8 @@ export default function Home() {
     const Component = map[selectedNode.type];
     return Component ? <Component nodeId={selectedNode.id} /> : null;
   }, [selectedNode]);
+
+  if (!onboarded) return null;
 
   return (
     <div className="w-full h-screen flex flex-col" style={{ background: "var(--w-ob-bg)" }}>
@@ -577,6 +561,7 @@ export default function Home() {
       {activeTab === "graph" && <VisualizationSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
+        onTabChange={setActiveTab}
         events={[
           { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
           { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
@@ -585,11 +570,20 @@ export default function Home() {
           { id: "sup-tsmc", name: "TSMC", country: "Taiwan", health_score: 35, criticality: "critical" },
           { id: "sup-infineon", name: "Infineon", country: "Germany", health_score: 82, criticality: "high" },
           { id: "sup-stmicro", name: "STMicro", country: "Switzerland", health_score: 90, criticality: "medium" },
+          ...uploadedSuppliers.map((s) => ({
+            id: `sup-${s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            name: s.name, country: s.country || "Unknown", health_score: 70, criticality: "medium" as const,
+          })),
         ]}
         parts={[
           { id: "part-mcu", name: "MCU-32BIT-AUTO", criticality: "critical", inventory_days: 8, safety_stock_days: 14 },
           { id: "part-pmic", name: "POWER-MGMT-IC", criticality: "high", inventory_days: 18, safety_stock_days: 10 },
           { id: "part-can", name: "CAN-CONTROLLER", criticality: "medium", inventory_days: 30, safety_stock_days: 7 },
+          ...uploadedBOM.map((b) => ({
+            id: `part-${(b.stock_keeping_unit || b.description || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            name: b.description || b.stock_keeping_unit || "Unknown", criticality: "medium" as const,
+            inventory_days: b.lead_time_days || 14, safety_stock_days: 7,
+          })),
         ]}
         orders={[
           { id: "ord-bmw", customer: "BMW AG", due_date: "Mar 10", revenue: 2_250_000, status: "at_risk" },
@@ -600,10 +594,14 @@ export default function Home() {
           { id: "cust-bmw", name: "BMW AG", annual_revenue: 85_000_000, sla_days: 14 },
           { id: "cust-vw", name: "VW Group", annual_revenue: 72_000_000, sla_days: 21 },
           { id: "cust-bosch", name: "Bosch GmbH", annual_revenue: 31_000_000, sla_days: 30 },
+          ...uploadedSLA.map((s) => ({
+            id: `cust-${(s.customer || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            name: s.customer || "Unknown", annual_revenue: s.annual_revenue || 0, sla_days: s.sla_days || 30,
+          })),
         ]}
       />}
 
-      {/* Overlay */}
+      {/* Overlay - uses memoized sidebar lists */}
       <NodeOverlay
         isOpen={!!selectedNode}
         nodeId={selectedNode?.id ?? null}

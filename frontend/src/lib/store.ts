@@ -47,6 +47,10 @@ interface WardenState {
   // Agent active indicator
   agentActive: boolean;
   setAgentActive: (v: boolean) => void;
+
+  // Onboarding
+  onboarded: boolean;
+  setOnboarded: (v: boolean) => void;
 }
 
 export const useWardenStore = create<WardenState>((set, get) => ({
@@ -108,4 +112,13 @@ export const useWardenStore = create<WardenState>((set, get) => ({
   // Agent active
   agentActive: true,
   setAgentActive: (agentActive) => set({ agentActive }),
+
+  // Onboarding
+  onboarded: typeof window !== "undefined" ? localStorage.getItem("warden_onboarded") === "true" : false,
+  setOnboarded: (onboarded) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("warden_onboarded", String(onboarded));
+    }
+    set({ onboarded });
+  },
 }));

@@ -9,4 +9,5 @@ google-adk
 google-genai
 sse-starlette
 python-multipart
+openpyxl
 supabase

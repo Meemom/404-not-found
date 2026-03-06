@@ -17,6 +17,8 @@ export const getCompanyProfile = () => fetchAPI<any>("/company/profile");
 export const updateCompanyProfile = (data: any) =>
   fetchAPI<any>("/company/profile", { method: "POST", body: JSON.stringify(data) });
 export const getCompanyMetrics = () => fetchAPI<any>("/company/metrics");
+export const getUploadedData = () =>
+  fetchAPI<{ suppliers: any[]; sla: any[]; bom: any[] }>("/company/uploaded-data");
 
 function normalizeAction(action: any): any {
   return {
