@@ -344,7 +344,7 @@ export default function OnboardingPage() {
       router.push("/dashboard");
     } catch (err) {
       console.error("Onboarding error:", err);
-      router.push("/dashboard");
+      router.push("/");
     } finally {
       setLoading(false);
     }
