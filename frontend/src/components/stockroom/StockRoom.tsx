@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { BOMItem } from "@/lib/types";
 import { initScene, updateInventory, dispose, type StockSceneState } from "./StockScene";
 import WardenAvatar from "@/components/WardenAvatar";
@@ -399,17 +400,35 @@ export default function StockRoom({ inventory }: StockRoomProps) {
                 </div>
               )}
 
-              {/* Done indicator */}
+              {/* Done indicator + link to full dashboard */}
               {!isLoading && streamingText && (
                 <div
                   style={{
                     textAlign: "center",
-                    padding: "8px 0",
-                    fontSize: 11,
-                    color: "#94a3b8",
+                    padding: "10px 0 4px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
-                  Analysis complete
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>Analysis complete</span>
+                  <Link
+                    href="/inventory"
+                    style={{
+                      display: "inline-block",
+                      padding: "7px 16px",
+                      borderRadius: 8,
+                      background: "var(--w-blue, #3b82f6)",
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      transition: "opacity 0.15s",
+                    }}
+                  >
+                    View Full Inventory Dashboard &rarr;
+                  </Link>
                 </div>
               )}
             </div>
