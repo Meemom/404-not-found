@@ -10,6 +10,60 @@ import { useWardenStore } from "@/lib/store";
 import WardenAvatar from "@/components/WardenAvatar";
 import type { PendingAction, DashboardOverview } from "@/lib/types";
 
+const DEMO_ACTIONS: PendingAction[] = [
+  {
+    id: "demo-reorder-mcu",
+    action_id: "demo-reorder-mcu",
+    type: "purchase_order",
+    title: "Emergency Reorder: 32-bit Automotive MCU",
+    description:
+      "Stock for MCU-32BIT-AUTO is below reorder point (18,000 / 21,000 units). Recommend placing an emergency PO with TSMC for 15,000 units to avoid production line stoppage on ORD-DE-8821 (BMW AG).",
+    target: "MCU-32BIT-AUTO",
+    urgency: "critical",
+    confidence: 92,
+    content: "Emergency purchase order for 15,000 units of MCU-32BIT-AUTO from TSMC.",
+    related_disruption: null,
+    related_order: "ORD-DE-8821",
+    estimated_cost_eur: 127500,
+    estimated_saving_eur: 2250000,
+    created_at: "2026-03-06T08:30:00Z",
+    status: "pending",
+  },
+  {
+    id: "demo-alt-supplier",
+    action_id: "demo-alt-supplier",
+    type: "supplier_switch",
+    title: "Activate Backup Supplier: Infineon Dresden",
+    description:
+      "TSMC lead time is 45 days. Infineon Technologies (Dresden) can deliver MCU-32BIT-AUTO in 7 days at a higher unit cost. Recommend splitting the order to bridge the gap.",
+    target: "MCU-32BIT-AUTO",
+    urgency: "high",
+    confidence: 85,
+    content: "Split order: 5,000 units from Infineon Dresden (7-day delivery) + 10,000 units from TSMC (45-day delivery).",
+    related_disruption: null,
+    related_order: "ORD-DE-8821",
+    estimated_cost_eur: 52500,
+    created_at: "2026-03-06T08:32:00Z",
+    status: "pending",
+  },
+  {
+    id: "demo-notify-bmw",
+    action_id: "demo-notify-bmw",
+    type: "email",
+    title: "Notify BMW AG: Potential Delay on ORD-DE-8821",
+    description:
+      "Current MCU stock may not cover the full 12,000-unit order due 2026-03-10. Draft a proactive communication to BMW procurement with revised timeline and mitigation steps.",
+    target: "ORD-DE-8821",
+    urgency: "medium",
+    confidence: 78,
+    content: "Draft email to BMW AG procurement team regarding potential 3-5 day delay on Engine Control Unit v4.2 order.",
+    related_disruption: null,
+    related_order: "ORD-DE-8821",
+    created_at: "2026-03-06T08:35:00Z",
+    status: "pending",
+  },
+];
+
 const STATUS_COLORS: Record<string, string> = {
   healthy: "#0D9488",
   adequate: "#F59E0B",
@@ -49,10 +103,14 @@ export default function InventoryPage() {
     Promise.all([getOperationsOverview(), getPendingActions()])
       .then(([ov, acts]) => {
         setOverview(ov);
-        setActions(acts);
-        setPendingActions(acts);
+        const merged = [...DEMO_ACTIONS, ...acts];
+        setActions(merged);
+        setPendingActions(merged);
       })
-      .catch(() => {})
+      .catch(() => {
+        setActions(DEMO_ACTIONS);
+        setPendingActions(DEMO_ACTIONS);
+      })
       .finally(() => setLoading(false));
   }, [setPendingActions]);
 
@@ -72,19 +130,15 @@ export default function InventoryPage() {
   const revenueAtRisk = overview?.revenue_at_risk_eur ?? 0;
 
   const handleApprove = async (id: string) => {
-    try {
-      await approveAction(id);
-      setActions((prev) => prev.map((a) => (a.action_id === id || a.id === id ? { ...a, status: "approved" as const } : a)));
-      updateActionStatus(id, "approved");
-    } catch {}
+    setActions((prev) => prev.map((a) => (a.action_id === id || a.id === id ? { ...a, status: "approved" as const } : a)));
+    updateActionStatus(id, "approved");
+    try { await approveAction(id); } catch {}
   };
 
   const handleDismiss = async (id: string) => {
-    try {
-      await dismissAction(id, "Dismissed from inventory dashboard");
-      setActions((prev) => prev.map((a) => (a.action_id === id || a.id === id ? { ...a, status: "dismissed" as const } : a)));
-      updateActionStatus(id, "dismissed");
-    } catch {}
+    setActions((prev) => prev.map((a) => (a.action_id === id || a.id === id ? { ...a, status: "dismissed" as const } : a)));
+    updateActionStatus(id, "dismissed");
+    try { await dismissAction(id, "Dismissed from inventory dashboard"); } catch {}
   };
 
   const pendingActions = actions.filter((a) => a.status === "pending");
