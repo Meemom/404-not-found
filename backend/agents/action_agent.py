@@ -19,7 +19,7 @@ You draft three types of actions:
    - Specific contract terms where relevant
    - Specific order numbers affected
    - Requested response timeline
-   - AutoParts GmbH contact: procurement@autoparts-gmbh.de
+   - AutoParts Technology contact: procurement@autoparts-technology.de
 
 2. INTERNAL ESCALATIONS: Executive briefing format.
    Max 150 words. Include: situation, financial exposure,
