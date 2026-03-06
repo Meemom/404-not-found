@@ -35,7 +35,7 @@ export default function StockRoom({ inventory }: StockRoomProps) {
   const [selectedItem, setSelectedItem] = useState<BOMItem | null>(null);
   const [showChat, setShowChat] = useState(false);
 
-  const stockSummary = useMemo(() => {
+  const { stockSummary, hasCritical } = useMemo(() => {
     const total = inventory.length;
     const critical = inventory.filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical").length;
     const healthy = inventory.filter((i) => i.inventory.status === "healthy").length;
@@ -46,9 +46,9 @@ export default function StockRoom({ inventory }: StockRoomProps) {
         .filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical")
         .map((i) => i.name)
         .join(", ");
-      return `Heads up! ${critical} of ${total} components need attention: ${names}. Total inventory value is \u20AC${totalValue.toLocaleString()}. ${healthy} items are healthy.`;
+      return { stockSummary: `Heads up! ${critical} of ${total} components need attention: ${names}. Total inventory value is \u20AC${totalValue.toLocaleString()}. ${healthy} items are healthy.`, hasCritical: true };
     }
-    return `Looking good! All ${total} components are well-stocked. Total inventory value: \u20AC${totalValue.toLocaleString()}.`;
+    return { stockSummary: `Looking good! All ${total} components are well-stocked. Total inventory value: \u20AC${totalValue.toLocaleString()}.`, hasCritical: false };
   }, [inventory]);
 
   const onItemClick = useCallback((item: BOMItem) => {
@@ -122,16 +122,18 @@ export default function StockRoom({ inventory }: StockRoomProps) {
         )}
         <button
           onClick={() => setShowChat((v) => !v)}
+          className={hasCritical ? "warden-critical-glow" : undefined}
           style={{
             cursor: "pointer",
             background: "none",
             border: "none",
             padding: 0,
             display: "block",
+            borderRadius: "50%",
           }}
           title="Ask Warden about stock"
         >
-          <WardenAvatar size={100} animation="jumping" />
+          <WardenAvatar size={200} animation="jumping" />
         </button>
       </div>
 
@@ -307,6 +309,13 @@ export default function StockRoom({ inventory }: StockRoomProps) {
         @keyframes chatBubbleIn {
           from { opacity: 0; transform: scale(0.9) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes criticalGlow {
+          0%, 100% { box-shadow: 0 0 4px 5px rgba(239, 68, 68, 0.25); }
+          50% { box-shadow: 0 0 10px 4px rgba(239, 68, 68, 0.45); }
+        }
+        .warden-critical-glow {
+          animation: criticalGlow 1.5s ease-in-out infinite;
         }
       `}</style>
     </div>
