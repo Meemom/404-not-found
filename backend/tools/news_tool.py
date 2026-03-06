@@ -83,3 +83,79 @@ def get_active_disruptions() -> dict:
         "active_count": len(active),
         "disruptions": active,
     }
+
+
+def classify_signal(raw_text: str) -> dict:
+    """Classify a raw news signal into a structured DisruptionSignal.
+
+    Args:
+        raw_text: The raw news headline or summary text to classify.
+
+    Returns:
+        Classified disruption signal with severity, type, affected regions, and supplier cross-references.
+    """
+    known_supplier_ids = [
+        "tsmc-001", "samsung-sdi-002", "infineon-my-003",
+        "continental-004", "valeo-005", "bosch-rex-006",
+    ]
+
+    text_lower = raw_text.lower()
+
+    # Determine disruption type based on keywords
+    if any(w in text_lower for w in ["military", "naval", "strait", "geopolitical", "sanction", "tariff"]):
+        disruption_type = "geopolitical"
+    elif any(w in text_lower for w in ["shipping", "port", "freight", "logistics", "route"]):
+        disruption_type = "shipping"
+    elif any(w in text_lower for w in ["earthquake", "typhoon", "flood", "climate", "weather"]):
+        disruption_type = "climate"
+    elif any(w in text_lower for w in ["bankruptcy", "financial", "credit", "default"]):
+        disruption_type = "financial"
+    else:
+        disruption_type = "supplier"
+
+    # Determine affected regions
+    affected_regions = []
+    if "taiwan" in text_lower:
+        affected_regions.append("Taiwan")
+    if "korea" in text_lower:
+        affected_regions.append("South Korea")
+    if "malaysia" in text_lower:
+        affected_regions.append("Malaysia")
+    if "china" in text_lower:
+        affected_regions.append("China")
+    if "europe" in text_lower or "germany" in text_lower:
+        affected_regions.append("Europe")
+    if not affected_regions:
+        affected_regions.append("Global")
+
+    # Cross-reference affected suppliers
+    affected_supplier_ids = []
+    if "taiwan" in text_lower or "tsmc" in text_lower:
+        affected_supplier_ids.append("tsmc-001")
+    if "korea" in text_lower or "samsung" in text_lower:
+        affected_supplier_ids.append("samsung-sdi-002")
+    if "malaysia" in text_lower or "infineon" in text_lower:
+        affected_supplier_ids.append("infineon-my-003")
+
+    # Determine severity based on content
+    severity = 5
+    if any(w in text_lower for w in ["military", "war", "blockade", "critical"]):
+        severity = 9
+    elif any(w in text_lower for w in ["exercise", "congestion", "delay", "disruption"]):
+        severity = 7
+    elif any(w in text_lower for w in ["monitor", "potential", "proposed"]):
+        severity = 4
+
+    # Calculate relevance score
+    relevance = min(1.0, len(affected_supplier_ids) * 0.3 + (severity / 10) * 0.4)
+
+    return {
+        "raw_text": raw_text,
+        "disruption_type": disruption_type,
+        "severity": severity,
+        "affected_regions": affected_regions,
+        "affected_supplier_ids": affected_supplier_ids,
+        "relevance_score": round(relevance, 2),
+        "classification_confidence": 0.85,
+        "requires_action": severity >= 7,
+    }
