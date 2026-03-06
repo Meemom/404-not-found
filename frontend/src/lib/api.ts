@@ -1,3 +1,5 @@
+import type { ArticleContent, EventIntelligence } from "./types";
+
 const API_BASE = "http://localhost:8000";
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -189,5 +191,46 @@ export function scanEvents(
 }
 
 export const getScannedEvents = () => fetchAPI<any[]>("/company/scanned-events");
+
+export async function fetchEventIntelligence(
+  eventId: string,
+  eventTitle: string,
+  eventType: string,
+  affectedRegions: string[],
+  severity: number
+): Promise<EventIntelligence> {
+  const res = await fetch(`${API_BASE}/api/perception/event-intelligence`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_id: eventId,
+      event_title: eventTitle,
+      event_type: eventType,
+      affected_regions: affectedRegions,
+      severity,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Intelligence fetch failed");
+  }
+
+  return res.json();
+}
+
+export async function fetchArticleContent(url: string): Promise<ArticleContent> {
+  const res = await fetch(`${API_BASE}/api/perception/fetch-article`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Article fetch failed");
+  }
+
+  const data = await res.json();
+  return { ...data, url };
+}
 
 export default API_BASE;

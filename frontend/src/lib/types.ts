@@ -319,3 +319,64 @@ export interface SSEEvent {
   reasoning_trace?: string[];
 }
 
+// ── Perception Intelligence ──
+export interface EventNodeData {
+  label: string;
+  eventType: string;
+  severity: number;
+  confidence: number;
+  delay: string;
+  affectedRegions: string[];
+}
+
+export interface EventNode {
+  id: string;
+  type: "event";
+  data: EventNodeData;
+}
+
+export interface ArticleResult {
+  article_id: string;
+  title: string;
+  summary: string;
+  source_name: string;
+  source_url: string;
+  published_at: string;
+  relevance_score: number;
+  source_type: "news";
+  is_mock: boolean;
+}
+
+export interface VideoResult {
+  video_id: string;
+  title: string;
+  channel_name: string;
+  thumbnail_url: string;
+  watch_url: string;
+  published_at: string;
+  is_mock: boolean;
+}
+
+export interface EventIntelligence {
+  event_id: string;
+  articles: ArticleResult[];
+  videos: VideoResult[];
+  mcp_status: {
+    brave_search: "live" | "fallback";
+    fetch: "available" | "unavailable";
+    youtube: "live" | "fallback";
+  };
+  fetched_at: string;
+}
+
+export interface ArticleContent {
+  url: string;
+  title?: string;
+  source_name?: string;
+  content: string;
+  word_count: number;
+  fetch_success: boolean;
+  is_loading?: boolean;
+  error?: string;
+}
+

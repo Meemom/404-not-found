@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ReactFlow, {
   Node,
   Edge,
+  type NodeMouseHandler,
   Controls,
   Background,
   useNodesState,
@@ -33,11 +34,13 @@ import {
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
 import SlashTerminal from "@/components/copilot/SlashTerminal";
+import { EventIntelligenceSidebar } from "../components/sidebar/EventIntelligenceSidebar";
 import { useWardenStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploadedData, getScannedEvents } from "@/lib/api";
 import type { ScannedEvent } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
-import type { BOMItem } from "@/lib/types";
+import type { BOMItem, EventNode as StoreEventNode } from "@/lib/types";
 
 const nodeTypes = {
   event: EventNode,
@@ -182,12 +185,35 @@ const ROW_GAP = 160;
 
 export default function Home() {
   const router = useRouter();
-  const { setCompany, setDashboard, setPendingActions, onboarded } = useWardenStore();
+  const {
+    setCompany,
+    setDashboard,
+    setPendingActions,
+    onboarded,
+    selectedEvent,
+    latestIntelligenceEventId,
+    selectEvent,
+    fetchEventIntelligence,
+    clearEventSelection,
+  } = useWardenStore(
+    useShallow((s) => ({
+      setCompany: s.setCompany,
+      setDashboard: s.setDashboard,
+      setPendingActions: s.setPendingActions,
+      onboarded: s.onboarded,
+      selectedEvent: s.selectedEvent,
+      latestIntelligenceEventId: s.latestIntelligenceEventId,
+      selectEvent: s.selectEvent,
+      fetchEventIntelligence: s.fetchEventIntelligence,
+      clearEventSelection: s.clearEventSelection,
+    }))
+  );
   const [selectedNode, setSelectedNode] = useState<{
     id: string;
     type: string;
     label: string;
   } | null>(null);
+  const [intelligenceSidebarOpen, setIntelligenceSidebarOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<ViewTab>("graph");
   const [uploadedSuppliers, setUploadedSuppliers] = useState<any[]>([]);
@@ -247,6 +273,55 @@ export default function Home() {
     setSelectedNode({ id, type, label });
   }, []);
 
+  const toStoreEventNode = useCallback((node: Node): StoreEventNode | null => {
+    if (node.type !== "event") return null;
+    const data = node.data as Record<string, unknown>;
+    const eventTypeRaw = String(data.eventType ?? data.type ?? "market");
+    return {
+      id: node.id,
+      type: "event",
+      data: {
+        label: String(data.label ?? data.region ?? "Unnamed Event"),
+        eventType: eventTypeRaw.toLowerCase(),
+        severity: Number(data.severity ?? 0),
+        confidence: Number(data.confidence ?? 0),
+        delay: String(data.delay ?? `+${Number(data.expected_delay_days ?? 0)}d`),
+        affectedRegions: Array.isArray(data.affectedRegions) ? (data.affectedRegions as string[]) : [],
+      },
+    };
+  }, []);
+
+  const openIntelligenceSidebar = useCallback((node: Node) => {
+    if (node.type !== "event") return;
+    const eventNode = toStoreEventNode(node);
+    if (!eventNode) return;
+    selectEvent(eventNode);
+    void fetchEventIntelligence(eventNode);
+    setIntelligenceSidebarOpen(true);
+  }, [fetchEventIntelligence, selectEvent, toStoreEventNode]);
+
+  const handleNodeSelection = useCallback((node: Node) => {
+    if (node.type === "event") {
+      setIntelligenceSidebarOpen(false);
+      const eventNode = toStoreEventNode(node);
+      if (!eventNode) return;
+      selectEvent(eventNode);
+      const data = node.data as Record<string, unknown>;
+      openOverlay(node.id, "Event", String(data.label ?? data.region ?? "Event"));
+      return;
+    }
+    setIntelligenceSidebarOpen(false);
+    clearEventSelection();
+    const data = node.data as Record<string, unknown>;
+    const typeLabelMap: Record<string, string> = { supplier: "Supplier", part: "Part", order: "Order", customer: "Customer" };
+    const label = String(data.label ?? data.name ?? data.customer ?? data.region ?? node.id);
+    openOverlay(node.id, typeLabelMap[String(node.type)] ?? "Node", label);
+  }, [clearEventSelection, openOverlay, selectEvent, toStoreEventNode]);
+
+  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
+    handleNodeSelection(node);
+  }, [handleNodeSelection]);
+
   // ── Build graph nodes & edges, merging hardcoded + uploaded data ──
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
@@ -263,8 +338,8 @@ export default function Home() {
 
     // ── EVENTS (from scan or fallback) ──
     const eventsList = [
-          { id: "evt-taiwan", evtId: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
-          { id: "evt-semi", evtId: "EVT-002", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
+          { id: "evt-taiwan", evtId: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14, affected_regions: ["Taiwan", "South China Sea"] },
+          { id: "evt-semi", evtId: "EVT-002", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7, affected_regions: ["East Asia", "Europe"] },
         ];
 
     let eventY = 0;
@@ -276,8 +351,11 @@ export default function Home() {
           id: evt.evtId, type: evt.type, region: evt.region,
           severity: evt.severity, confidence: evt.confidence,
           expected_delay_days: evt.expected_delay_days,
+          label: evt.region,
+          eventType: evt.type.toLowerCase(),
+          delay: `+${evt.expected_delay_days}d`,
+          affectedRegions: evt.affected_regions ?? [],
           start_time: new Date().toISOString().split("T")[0],
-          onClick: () => openOverlay(evt.id, "Event", evt.region),
         },
       });
       eventY += ROW_GAP;
@@ -463,6 +541,40 @@ export default function Home() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
+  const onSidebarNodeClick = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) handleNodeSelection(node);
+    },
+    [handleNodeSelection, nodes]
+  );
+
+  const onViewIntelligence = useCallback((nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node || node.type !== "event") return;
+    openIntelligenceSidebar(node);
+  }, [nodes, openIntelligenceSidebar]);
+
+  const displayNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        if (node.type !== "event") {
+          return node;
+        }
+
+        return {
+          ...node,
+          data: {
+            ...(node.data as Record<string, unknown>),
+            isSelectedEvent: selectedEvent?.id === node.id,
+            hasFreshIntelligence: latestIntelligenceEventId === node.id,
+            onViewIntelligence: () => onViewIntelligence(node.id),
+          },
+        };
+      }),
+    [latestIntelligenceEventId, nodes, onViewIntelligence, selectedEvent?.id]
+  );
+
   const expandedViewComponent = useMemo(() => {
     if (!selectedNode) return null;
     const map: Record<string, React.ComponentType<{ nodeId: string }>> = {
@@ -538,10 +650,15 @@ export default function Home() {
             </svg>
 
             <ReactFlow
-              nodes={nodes}
+              nodes={displayNodes}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
+              onNodeClick={onNodeClick}
+              onPaneClick={() => {
+                clearEventSelection();
+                setIntelligenceSidebarOpen(false);
+              }}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               fitView
@@ -576,6 +693,7 @@ export default function Home() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
         onTabChange={setActiveTab}
+        onNodeClick={onSidebarNodeClick}
         events={[
               { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
               { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
@@ -622,10 +740,15 @@ export default function Home() {
         nodeId={selectedNode?.id ?? null}
         nodeType={selectedNode?.type ?? ""}
         nodeLabel={selectedNode?.label ?? ""}
-        onClose={() => setSelectedNode(null)}
+        onClose={() => { setSelectedNode(null); }}
       >
         {expandedViewComponent}
       </NodeOverlay>
+
+      <EventIntelligenceSidebar
+        isOpen={intelligenceSidebarOpen}
+        onClose={() => setIntelligenceSidebarOpen(false)}
+      />
 
       {/* Footer */}
       <div className="border-t px-6 py-2.5 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>

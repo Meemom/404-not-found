@@ -1,7 +1,14 @@
 import { create } from "zustand";
+import {
+  fetchArticleContent as fetchArticleContentAPI,
+  fetchEventIntelligence as fetchEventIntelligenceAPI,
+} from "./api";
 import type {
+  ArticleContent,
   CompanyProfile,
   DashboardOverview,
+  EventIntelligence,
+  EventNode,
   PendingAction,
   ChatMessage,
   Disruption,
@@ -43,6 +50,19 @@ interface WardenState {
   // Sidebar
   sidebarOpen: boolean;
   setSidebarOpen: (v: boolean) => void;
+
+  // Perception intelligence
+  selectedEvent: EventNode | null;
+  eventIntelligence: EventIntelligence | null;
+  isLoadingIntelligence: boolean;
+  intelligenceError: string | null;
+  articleModalContent: ArticleContent | null;
+  latestIntelligenceEventId: string | null;
+  selectEvent: (node: EventNode | null) => void;
+  fetchEventIntelligence: (node: EventNode) => Promise<void>;
+  clearEventSelection: () => void;
+  openArticleModal: (url: string) => Promise<void>;
+  closeArticleModal: () => void;
 
   // Agent active indicator
   agentActive: boolean;
@@ -108,6 +128,109 @@ export const useWardenStore = create<WardenState>((set, get) => ({
   // Sidebar
   sidebarOpen: true,
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+
+  // Perception intelligence
+  selectedEvent: null,
+  eventIntelligence: null,
+  isLoadingIntelligence: false,
+  intelligenceError: null,
+  articleModalContent: null,
+  latestIntelligenceEventId: null,
+  selectEvent: (node) =>
+    set({
+      selectedEvent: node,
+      intelligenceError: null,
+      articleModalContent: null,
+    }),
+  fetchEventIntelligence: async (node) => {
+    const eventId = node.id;
+    set({
+      isLoadingIntelligence: true,
+      intelligenceError: null,
+      eventIntelligence: null,
+    });
+
+    try {
+      const intelligence = await fetchEventIntelligenceAPI(
+        node.id,
+        node.data.label,
+        node.data.eventType.toLowerCase(),
+        node.data.affectedRegions,
+        node.data.severity,
+      );
+
+      if (get().selectedEvent?.id !== eventId) {
+        return;
+      }
+
+      set({
+        eventIntelligence: intelligence,
+        isLoadingIntelligence: false,
+        latestIntelligenceEventId: eventId,
+      });
+
+      setTimeout(() => {
+        if (get().selectedEvent?.id === eventId) {
+          set({ latestIntelligenceEventId: null });
+        }
+      }, 1600);
+    } catch (error) {
+      if (get().selectedEvent?.id !== eventId) {
+        return;
+      }
+
+      set({
+        isLoadingIntelligence: false,
+        intelligenceError:
+          error instanceof Error
+            ? error.message
+            : "Could not fetch intelligence for this event.",
+      });
+    }
+  },
+  clearEventSelection: () =>
+    set({
+      selectedEvent: null,
+      eventIntelligence: null,
+      isLoadingIntelligence: false,
+      intelligenceError: null,
+      articleModalContent: null,
+      latestIntelligenceEventId: null,
+    }),
+  openArticleModal: async (url) => {
+    set({
+      articleModalContent: {
+        url,
+        content: "",
+        word_count: 0,
+        fetch_success: false,
+        is_loading: true,
+      },
+    });
+
+    try {
+      const article = await fetchArticleContentAPI(url);
+      set({
+        articleModalContent: {
+          ...article,
+          url,
+          is_loading: false,
+        },
+      });
+    } catch (error) {
+      set({
+        articleModalContent: {
+          url,
+          content: "",
+          word_count: 0,
+          fetch_success: false,
+          is_loading: false,
+          error: error instanceof Error ? error.message : "Could not load article.",
+        },
+      });
+    }
+  },
+  closeArticleModal: () => set({ articleModalContent: null }),
 
   // Agent active
   agentActive: true,

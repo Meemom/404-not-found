@@ -211,10 +211,15 @@ def _parse_mcp_results(raw: Any) -> list[dict[str, Any]]:
                 for item in payload["content"]
             ]
             joined = "\n".join(text_blobs)
-            return _extract_json_rows(joined)
-        return _extract_json_rows(_extract_text(payload))
+            rows = _extract_json_rows(joined)
+            return rows if rows else _extract_text_rows(joined)
+        payload_text = _extract_text(payload)
+        rows = _extract_json_rows(payload_text)
+        return rows if rows else _extract_text_rows(payload_text)
 
-    return _extract_json_rows(_extract_text(payload))
+    payload_text = _extract_text(payload)
+    rows = _extract_json_rows(payload_text)
+    return rows if rows else _extract_text_rows(payload_text)
 
 
 def _extract_json_rows(text: str) -> list[dict[str, Any]]:
@@ -236,6 +241,39 @@ def _extract_json_rows(text: str) -> list[dict[str, Any]]:
         pass
 
     return []
+
+
+def _extract_text_rows(text: str) -> list[dict[str, Any]]:
+    """Parse plain-text Brave output blocks into structured rows."""
+    if not text.strip():
+        return []
+
+    rows: list[dict[str, Any]] = []
+    block_pattern = re.compile(
+        r"Title:\s*(?P<title>.*?)\s*\n"
+        r"Description:\s*(?P<description>.*?)\s*\n"
+        r"URL:\s*(?P<url>\S+)",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    for match in block_pattern.finditer(text):
+        title = re.sub(r"\s+", " ", match.group("title")).strip()
+        description = re.sub(r"\s+", " ", match.group("description")).strip()
+        description = re.sub(r"<[^>]+>", "", description)
+        url = match.group("url").strip()
+
+        if not title and not url:
+            continue
+
+        rows.append(
+            {
+                "title": title or "Untitled",
+                "description": description,
+                "url": url,
+            }
+        )
+
+    return rows
 
 
 async def search_event_news(

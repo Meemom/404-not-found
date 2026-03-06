@@ -170,6 +170,8 @@ export function VisualizationSidebar({
                 borderLeft: "1px solid var(--w-ob-border)",
               }}
             >
+              <div className="relative flex-1 overflow-hidden">
+                <div className="h-full flex flex-col">
               {/* Header */}
               <div className="px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--w-ob-border)" }}>
                 <h2 className="text-lg font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
@@ -457,6 +459,8 @@ export function VisualizationSidebar({
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
                 </div>
               </div>
             </motion.div>
