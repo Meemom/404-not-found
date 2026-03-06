@@ -16,6 +16,8 @@ import {
   Radio,
   Activity,
   Globe,
+  Upload,
+  ClipboardList,
 } from "lucide-react";
 import { useWardenStore } from "@/lib/store";
 import { updateCompanyProfile, getCompanyProfile } from "@/lib/api";
@@ -225,6 +227,7 @@ const STEPS = [
   { id: "risk", label: "Risk Tolerance" },
   { id: "suppliers", label: "Suppliers" },
   { id: "sla", label: "SLA Penalties" },
+  { id: "bom", label: "Bill of Materials" },
   { id: "review", label: "Review" },
 ];
 
@@ -276,7 +279,7 @@ export default function OnboardingPage() {
       case 4:
         return suppliers.some((s) => s.name.trim() !== "");
       case 5:
-        return true;
+        return slaPenalties.some((s) => s.customer.trim() !== "");
       default:
         return true;
     }
@@ -782,6 +785,23 @@ export default function OnboardingPage() {
                 </button>
               )}
 
+              {/* Upload alternative */}
+              <div className="mt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">or</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <label className="ob-card flex flex-col items-center gap-2 p-5 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                    <Upload size={18} className="text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Upload a document</span>
+                  <span className="text-xs text-gray-400">CSV, Excel, or PDF with supplier information</span>
+                  <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+                </label>
+              </div>
+
               <div className="flex items-center justify-between mt-8">
                 <button onClick={back} className="ob-btn-back">
                   <ArrowLeft size={14} /> Back
@@ -865,19 +885,116 @@ export default function OnboardingPage() {
                 </button>
               )}
 
+              {/* Upload alternative */}
+              <div className="mt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">or</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <label className="ob-card flex flex-col items-center gap-2 p-5 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                    <Upload size={18} className="text-blue-500" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Upload a document</span>
+                  <span className="text-xs text-gray-400">CSV, Excel, or PDF with SLA and penalty details</span>
+                  <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+                </label>
+              </div>
+
               <div className="flex items-center justify-between mt-8">
                 <button onClick={back} className="ob-btn-back">
                   <ArrowLeft size={14} /> Back
                 </button>
-                <button onClick={next} className="ob-btn-primary">
+                <button onClick={next} disabled={!canProceed()} className="ob-btn-primary">
                   Continue <ArrowRight size={16} />
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* ── Step 6: Review ── */}
+          {/* ── Step 6: Bill of Materials ── */}
           {step === 6 && (
+            <motion.div
+              key="bom"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -24 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <ClipboardList size={20} className="text-blue-500" />
+                <h2 className="text-xl font-bold text-gray-900">
+                  Upload your Bill of Materials
+                </h2>
+              </div>
+              <p className="text-sm text-gray-400 mb-6">
+                Upload your BOM so Warden can map parts to suppliers and identify single-source risks. You can skip this and add it later.
+              </p>
+
+              <label className="ob-card flex flex-col items-center gap-3 p-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                  <Upload size={24} className="text-blue-500" />
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-gray-700 block">
+                    Click to upload or drag and drop
+                  </span>
+                  <span className="text-xs text-gray-400 mt-1 block">
+                    CSV, Excel (.xlsx), or PDF &mdash; max 10MB
+                  </span>
+                </div>
+                <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+              </label>
+
+              <div className="mt-5 ob-card p-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Expected columns</p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Part number / SKU
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Part description
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Supplier name
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Quantity per unit
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Lead time (days)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Unit cost (optional)
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-8">
+                <button onClick={back} className="ob-btn-back">
+                  <ArrowLeft size={14} /> Back
+                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={next} className="ob-btn-back">
+                    Skip for now
+                  </button>
+                  <button onClick={next} disabled={!canProceed()} className="ob-btn-primary">
+                    Continue <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Step 7: Review ── */}
+          {step === 7 && (
             <motion.div
               key="review"
               initial={{ opacity: 0, y: 24 }}
