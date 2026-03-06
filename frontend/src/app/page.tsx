@@ -28,6 +28,7 @@ import {
   CustomerExpandedView,
 } from "@/components/visualization/overlays";
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
+import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
 
 const nodeTypes = {
   event: EventNode,
@@ -52,6 +53,7 @@ export default function Home() {
     label: string;
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<ViewTab>("graph");
 
   const openOverlay = (id: string, type: string, label: string) => {
     setSelectedNode({ id, type, label });
@@ -316,81 +318,127 @@ export default function Home() {
       {/* Header */}
       <div className="border-b px-6 py-4 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
-              Supply Chain Graph
-            </h1>
-            <p className="text-xs" style={{ color: "var(--w-ob-text-faint)" }}>
-              EVENT &rarr; SUPPLIER &rarr; PART &rarr; ORDER &rarr; CUSTOMER
-            </p>
+          <div className="flex items-center gap-6">
+            <div>
+              <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
+                Warden
+              </h1>
+              <p className="text-xs" style={{ color: "var(--w-ob-text-faint)" }}>
+                Supply Chain Resilience
+              </p>
+            </div>
+            <NavigationBar activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
 
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-[10px]">
-            {[
-              { color: "#ef4444", label: "Affects" },
-              { color: "#3b82f6", label: "Supplies" },
-              { color: "#14b8a6", label: "Required for" },
-              { color: "#10b981", label: "Belongs to" },
-              { color: "#eab308", label: "Alt. supplier", dashed: true },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div
-                  className="w-4 h-0.5 rounded"
-                  style={{
-                    backgroundColor: item.color,
-                    borderBottom: item.dashed ? `2px dashed ${item.color}` : undefined,
-                  }}
-                />
-                <span style={{ color: "var(--w-ob-text-muted)" }}>{item.label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Legend (only for graph view) */}
+          {activeTab === "graph" && (
+            <div className="flex items-center gap-4 text-[10px]">
+              {[
+                { color: "#ef4444", label: "Affects" },
+                { color: "#3b82f6", label: "Supplies" },
+                { color: "#14b8a6", label: "Required for" },
+                { color: "#10b981", label: "Belongs to" },
+                { color: "#eab308", label: "Alt. supplier", dashed: true },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5">
+                  <div
+                    className="w-4 h-0.5 rounded"
+                    style={{
+                      backgroundColor: item.color,
+                      borderBottom: item.dashed ? `2px dashed ${item.color}` : undefined,
+                    }}
+                  />
+                  <span style={{ color: "var(--w-ob-text-muted)" }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Flow Canvas */}
+      {/* Content Area */}
       <div className="flex-1 relative overflow-hidden">
-        <div style={{ width: "100%", height: "100%", background: "var(--w-ob-bg)" }}>
-          <svg style={{ position: "absolute", width: 0, height: 0 }}>
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-          </svg>
+        {activeTab === "graph" && (
+          <div style={{ width: "100%", height: "100%", background: "var(--w-ob-bg)" }}>
+            <svg style={{ position: "absolute", width: 0, height: 0 }}>
+              <defs>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+            </svg>
 
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.15 }}
-            minZoom={0.4}
-            maxZoom={1.5}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background color="#CBD5E1" gap={20} size={1} style={{ background: "var(--w-ob-bg)" }} />
-            <Controls
-              style={{
-                background: "var(--w-ob-surface)",
-                border: "1px solid var(--w-ob-border)",
-                borderRadius: "8px",
-              }}
-            />
-          </ReactFlow>
-        </div>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.15 }}
+              minZoom={0.4}
+              maxZoom={1.5}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background color="#CBD5E1" gap={20} size={1} style={{ background: "var(--w-ob-bg)" }} />
+              <Controls
+                style={{
+                  background: "var(--w-ob-surface)",
+                  border: "1px solid var(--w-ob-border)",
+                  borderRadius: "8px",
+                }}
+              />
+            </ReactFlow>
+          </div>
+        )}
+
+        {activeTab === "globe" && (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                  <path d="M2 12h20" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Globe View</h2>
+              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
+                Interactive 3D globe showing supplier locations, shipping routes, and disruption zones worldwide.
+              </p>
+              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "stockroom" && (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z" />
+                  <path d="M6 18h12" />
+                  <path d="M6 14h12" />
+                  <path d="M6 10h12" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Stockroom</h2>
+              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
+                Virtual warehouse visualization with real-time inventory levels, shelf layouts, and stock alerts.
+              </p>
+              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Sidebar */}
-      <VisualizationSidebar
+      {/* Sidebar (graph view only) */}
+      {activeTab === "graph" && <VisualizationSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
         events={[
@@ -417,7 +465,7 @@ export default function Home() {
           { id: "cust-vw", name: "VW Group", annual_revenue: 72_000_000, sla_days: 21 },
           { id: "cust-bosch", name: "Bosch GmbH", annual_revenue: 31_000_000, sla_days: 30 },
         ]}
-      />
+      />}
 
       {/* Overlay */}
       <NodeOverlay

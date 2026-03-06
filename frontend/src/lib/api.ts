@@ -115,4 +115,22 @@ export async function streamChat(
   }
 }
 
+// Upload Documents 
+export async function uploadDocument(
+    docType: "suppliers" | "sla" | "bom",
+    file: File,
+    companyId: string
+  ): Promise<{ extracted: any[]; count: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("company_id", companyId);
+
+    const res = await fetch(`${API_BASE}/upload/${docType}`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    return res.json();
+  }
+
 export default API_BASE;
