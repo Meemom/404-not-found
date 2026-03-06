@@ -549,6 +549,7 @@ export default function Home() {
       {activeTab === "graph" && <VisualizationSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
+        onTabChange={setActiveTab}
         events={[
           { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
           { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },

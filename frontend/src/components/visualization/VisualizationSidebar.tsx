@@ -64,6 +64,7 @@ interface VisualizationSidebarProps {
   orders: OrderSummary[];
   customers: CustomerSummary[];
   onNodeClick?: (nodeId: string) => void;
+  onTabChange?: (tab: string) => void;
 }
 
 type Section = "events" | "suppliers" | "parts" | "orders" | "customers" | null;
@@ -77,6 +78,7 @@ export function VisualizationSidebar({
   orders,
   customers,
   onNodeClick,
+  onTabChange,
 }: VisualizationSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<Section>("events");
 
@@ -204,13 +206,17 @@ export function VisualizationSidebar({
                       {formatRevenue(totalRevenueAtRisk)}
                     </p>
                   </div>
-                  <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
+                  <button
+                    className="rounded-lg p-3 border text-left cursor-pointer hover:bg-amber-50 transition-colors w-full"
+                    onClick={() => onTabChange?.("stockroom")}
+                    style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}
+                  >
                     <div className="flex items-center gap-1.5 mb-1">
                       <AlertTriangle size={12} className="text-amber-500" />
-                      <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>Low Stock Parts</p>
+                      <span className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>Low Stock Parts</span>
                     </div>
                     <p className="text-lg font-bold text-amber-600">{lowStockParts.length}</p>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Events Section */}
