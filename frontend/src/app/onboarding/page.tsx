@@ -418,7 +418,7 @@ export default function OnboardingPage() {
                   transition={{ duration: 1, ease: "easeOut" }}
                   className="mb-6"
                 >
-                  <GlowingOrb size={200} />
+                  <GlowingOrb size={350} />
                 </motion.div>
 
                 {/* Typewriter tagline */}
