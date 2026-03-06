@@ -341,7 +341,7 @@ export default function OnboardingPage() {
       });
       const profile = await getCompanyProfile();
       setCompany(profile);
-      router.push("/dashboard");
+      router.push("/");
     } catch (err) {
       console.error("Onboarding error:", err);
       router.push("/");
