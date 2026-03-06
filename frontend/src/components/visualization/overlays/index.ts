@@ -1,10 +1,6 @@
 export { NodeOverlay } from "./NodeOverlay";
-export { PerceptionExpandedView } from "./PerceptionExpandedView";
-export { RiskExpandedView } from "./RiskExpandedView";
-export { PlanningExpandedView } from "./PlanningExpandedView";
-export { ActionExpandedView } from "./ActionExpandedView";
-export { StockExpandedView } from "./StockExpandedView";
+export { EventExpandedView } from "./EventExpandedView";
 export { SupplierExpandedView } from "./SupplierExpandedView";
+export { PartExpandedView } from "./PartExpandedView";
 export { OrderExpandedView } from "./OrderExpandedView";
-export { GraphExpandedView } from "./GraphExpandedView";
-export { RadarExpandedView } from "./RadarExpandedView";
+export { CustomerExpandedView } from "./CustomerExpandedView";

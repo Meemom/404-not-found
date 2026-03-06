@@ -6,115 +6,117 @@ import {
   ChevronLeft,
   AlertCircle,
   TrendingDown,
-  Package,
-  Activity,
-  Clock,
   AlertTriangle,
+  Truck,
+  Cpu,
+  ShoppingCart,
+  Users,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface SidebarNode {
+interface EventSummary {
   id: string;
-  label: string;
   type: string;
-  health: number;
+  region: string;
+  severity: number;
+  confidence: number;
+  expected_delay_days: number;
 }
 
-interface SidebarDisruption {
+interface SupplierSummary {
   id: string;
-  title: string;
-  severity: "critical" | "high" | "medium" | "low";
-  affectedSuppliers: number;
+  name: string;
+  country: string;
+  health_score: number;
+  criticality: string;
 }
 
-interface SidebarAction {
+interface PartSummary {
   id: string;
-  title: string;
-  urgency: "critical" | "high" | "medium" | "low";
-  type: "email" | "escalation" | "po_adjustment";
+  name: string;
+  criticality: string;
+  inventory_days: number;
+  safety_stock_days: number;
+}
+
+interface OrderSummary {
+  id: string;
+  customer: string;
+  due_date: string;
+  revenue: number;
+  status: string;
+}
+
+interface CustomerSummary {
+  id: string;
+  name: string;
+  annual_revenue: number;
+  sla_days: number;
 }
 
 interface VisualizationSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  nodes: SidebarNode[];
-  disruptions: SidebarDisruption[];
-  actions: SidebarAction[];
+  events: EventSummary[];
+  suppliers: SupplierSummary[];
+  parts: PartSummary[];
+  orders: OrderSummary[];
+  customers: CustomerSummary[];
   onNodeClick?: (nodeId: string) => void;
-  overallHealth?: number;
-  revenueAtRisk?: number;
-  activeAlerts?: number;
 }
+
+type Section = "events" | "suppliers" | "parts" | "orders" | "customers" | null;
 
 export function VisualizationSidebar({
   isOpen,
   onToggle,
-  nodes,
-  disruptions,
-  actions,
+  events,
+  suppliers,
+  parts,
+  orders,
+  customers,
   onNodeClick,
-  overallHealth = 72,
-  revenueAtRisk = 4200000,
-  activeAlerts = 3,
 }: VisualizationSidebarProps) {
-  const [expandedSection, setExpandedSection] = useState<
-    "nodes" | "disruptions" | "actions" | null
-  >("nodes");
+  const [expandedSection, setExpandedSection] = useState<Section>("events");
 
-  const getSeverityColor = (
-    severity: "critical" | "high" | "medium" | "low"
-  ) => {
-    switch (severity) {
-      case "critical":
-        return "bg-red-900/20 border-red-600/30 text-red-400";
-      case "high":
-        return "bg-orange-900/20 border-orange-600/30 text-orange-400";
-      case "medium":
-        return "bg-yellow-900/20 border-yellow-600/30 text-yellow-400";
-      case "low":
-        return "bg-green-900/20 border-green-600/30 text-green-400";
-    }
-  };
-
-  const getSeverityBadgeColor = (
-    severity: "critical" | "high" | "medium" | "low"
-  ) => {
-    switch (severity) {
-      case "critical":
-        return "bg-red-600/30 text-red-300";
-      case "high":
-        return "bg-orange-600/30 text-orange-300";
-      case "medium":
-        return "bg-yellow-600/30 text-yellow-300";
-      case "low":
-        return "bg-green-600/30 text-green-300";
-    }
-  };
-
-  const getUrgencyColor = (urgency: "critical" | "high" | "medium" | "low") => {
-    switch (urgency) {
-      case "critical":
-        return "bg-red-900/20 border-red-600/30";
-      case "high":
-        return "bg-orange-900/20 border-orange-600/30";
-      case "medium":
-        return "bg-yellow-900/20 border-yellow-600/30";
-      case "low":
-        return "bg-blue-900/20 border-blue-600/30";
-    }
-  };
+  const criticalSuppliers = suppliers.filter((s) => s.health_score < 50);
+  const atRiskOrders = orders.filter((o) => o.status === "at_risk" || o.status === "delayed");
+  const lowStockParts = parts.filter((p) => p.inventory_days < p.safety_stock_days);
+  const totalRevenueAtRisk = atRiskOrders.reduce((sum, o) => sum + o.revenue, 0);
+  const avgSupplierHealth = suppliers.length
+    ? Math.round(suppliers.reduce((sum, s) => sum + s.health_score, 0) / suppliers.length)
+    : 0;
 
   const getHealthColor = (health: number) => {
-    if (health > 70) return "text-green-400";
-    if (health > 40) return "text-amber-400";
-    return "text-red-400";
+    if (health > 70) return "text-green-600";
+    if (health > 40) return "text-amber-600";
+    return "text-red-600";
   };
 
-  const getHealthBgColor = (health: number) => {
-    if (health > 70) return "from-green-900/20 to-transparent";
-    if (health > 40) return "from-amber-900/20 to-transparent";
-    return "from-red-900/20 to-transparent";
+  const getHealthBarColor = (health: number) => {
+    if (health > 70) return "bg-green-500";
+    if (health > 40) return "bg-amber-500";
+    return "bg-red-500";
   };
+
+  const getCriticalityColor = (c: string) => {
+    if (c === "critical") return "text-red-600 bg-red-50";
+    if (c === "high") return "text-orange-600 bg-orange-50";
+    return "text-yellow-600 bg-yellow-50";
+  };
+
+  const getStatusColor = (s: string) => {
+    if (s === "at_risk") return "text-red-600";
+    if (s === "delayed") return "text-orange-500";
+    return "text-green-600";
+  };
+
+  const formatRevenue = (v: number) =>
+    v >= 1_000_000 ? `€${(v / 1_000_000).toFixed(1)}M` : `€${(v / 1_000).toFixed(0)}K`;
+
+  const toggleSection = (section: Section) =>
+    setExpandedSection(expandedSection === section ? null : section);
 
   return (
     <>
@@ -123,14 +125,21 @@ export function VisualizationSidebar({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onToggle}
-        className="fixed right-4 top-1/2 transform -translate-y-1/2 z-40 p-2 rounded-l-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 border-r-0 transition-colors"
+        className="fixed top-1/2 transform -translate-y-1/2 z-40 p-2 rounded-l-lg transition-colors"
+        style={{
+          right: isOpen ? "320px" : "0px",
+          background: "var(--w-ob-surface)",
+          border: "1px solid var(--w-ob-border)",
+          borderRight: "none",
+        }}
       >
         <ChevronLeft
           size={20}
           className={cn(
-            "text-slate-400 transition-transform",
+            "transition-transform",
             !isOpen && "rotate-180"
           )}
+          style={{ color: "var(--w-ob-text-muted)" }}
         />
       </motion.button>
 
@@ -138,277 +147,307 @@ export function VisualizationSidebar({
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop (mobile) */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onToggle}
-              className="fixed inset-0 bg-black/40 z-30 md:hidden"
+              className="fixed inset-0 bg-black/10 z-30 md:hidden"
             />
 
             {/* Sidebar Panel */}
             <motion.div
-              initial={{ x: 380 }}
+              initial={{ x: 320 }}
               animate={{ x: 0 }}
-              exit={{ x: 380 }}
+              exit={{ x: 320 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed right-0 top-0 h-screen w-80 bg-gradient-to-b from-slate-900 to-slate-800 border-l border-slate-700 z-30 flex flex-col overflow-hidden"
+              className="fixed right-0 top-0 h-screen w-80 z-30 flex flex-col overflow-hidden"
+              style={{
+                background: "var(--w-ob-surface)",
+                borderLeft: "1px solid var(--w-ob-border)",
+              }}
             >
               {/* Header */}
-              <div className="bg-gradient-to-b from-slate-800 to-slate-800/50 px-6 py-4 border-b border-slate-700 shrink-0">
-                <h2 className="text-lg font-bold text-white mb-1">
+              <div className="px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--w-ob-border)" }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
                   Supply Chain Status
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Real-time visualization summary
+                <p className="text-xs" style={{ color: "var(--w-ob-text-faint)" }}>
+                  Real-time overview
                 </p>
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto space-y-4 px-4 py-4">
-                {/* Overall Stats */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Overall Health */}
-                    <div className={cn(
-                      "rounded-lg p-3 border border-slate-600 bg-gradient-to-br",
-                      getHealthBgColor(overallHealth)
-                    )}>
-                      <p className="text-xs text-slate-400 mb-1">
-                        Overall Health
-                      </p>
-                      <p className={cn("text-xl font-bold", getHealthColor(overallHealth))}>
-                        {Math.round(overallHealth)}%
-                      </p>
-                    </div>
-
-                    {/* Active Alerts */}
-                    <div className="rounded-lg p-3 border border-slate-600 bg-gradient-to-br from-orange-900/20 to-transparent">
-                      <p className="text-xs text-slate-400 mb-1">
-                        Active Alerts
-                      </p>
-                      <p className="text-xl font-bold text-orange-400">
-                        {activeAlerts}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Revenue at Risk */}
-                  <div className="rounded-lg p-3 border border-red-600/30 bg-red-900/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <TrendingDown size={14} className="text-red-400" />
-                      <p className="text-xs text-slate-400">Revenue at Risk</p>
-                    </div>
-                    <p className="text-sm font-bold text-red-400">
-                      €{(revenueAtRisk / 1000000).toFixed(1)}M
+              <div className="flex-1 overflow-y-auto space-y-3 px-4 py-4">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
+                    <p className="text-[10px] mb-1" style={{ color: "var(--w-ob-text-faint)" }}>Avg Supplier Health</p>
+                    <p className={cn("text-xl font-bold", getHealthColor(avgSupplierHealth))}>
+                      {avgSupplierHealth}%
                     </p>
                   </div>
+                  <div className="rounded-lg p-3 border border-orange-200 bg-orange-50">
+                    <p className="text-[10px] mb-1" style={{ color: "var(--w-ob-text-faint)" }}>Active Disruptions</p>
+                    <p className="text-xl font-bold text-orange-500">{events.length}</p>
+                  </div>
                 </div>
 
-                {/* Nodes Section */}
-                <div className="border-t border-slate-700 pt-4">
-                  <motion.button
-                    onClick={() =>
-                      setExpandedSection(
-                        expandedSection === "nodes" ? null : "nodes"
-                      )
-                    }
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Activity size={16} className="text-blue-400" />
-                      <span className="text-sm font-semibold text-white">
-                        Agent Nodes
-                      </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <TrendingDown size={12} className="text-red-500" />
+                      <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>Revenue at Risk</p>
                     </div>
-                    <span className="text-xs text-slate-400">
-                      {nodes.length}
-                    </span>
-                  </motion.button>
+                    <p className="text-lg font-bold text-red-600">
+                      {formatRevenue(totalRevenueAtRisk)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <AlertTriangle size={12} className="text-amber-500" />
+                      <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>Low Stock Parts</p>
+                    </div>
+                    <p className="text-lg font-bold text-amber-600">{lowStockParts.length}</p>
+                  </div>
+                </div>
 
-                  <AnimatePresence>
-                    {expandedSection === "nodes" && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2 mt-2"
-                      >
-                        {nodes.map((node) => (
-                          <motion.button
-                            key={node.id}
-                            whileHover={{ scale: 1.02 }}
-                            onClick={() => onNodeClick?.(node.id)}
+                {/* Events Section */}
+                <SectionHeader
+                  icon={<Zap size={16} className="text-red-500" />}
+                  label="Events"
+                  count={events.length}
+                  isOpen={expandedSection === "events"}
+                  onToggle={() => toggleSection("events")}
+                />
+                <AnimatePresence>
+                  {expandedSection === "events" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      {events.map((evt) => (
+                        <button
+                          key={evt.id}
+                          onClick={() => onNodeClick?.(evt.id)}
+                          className="w-full text-left px-3 py-2.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium" style={{ color: "var(--w-ob-text)" }}>{evt.region}</span>
+                            <span className="text-xs font-bold text-red-600">
+                              {evt.severity}/10
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+                            <span>{evt.type}</span>
+                            <span>{evt.confidence}% confidence</span>
+                            <span>+{evt.expected_delay_days}d delay</span>
+                          </div>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Suppliers Section */}
+                <SectionHeader
+                  icon={<Truck size={16} className="text-blue-500" />}
+                  label="Suppliers"
+                  count={suppliers.length}
+                  badge={criticalSuppliers.length > 0 ? `${criticalSuppliers.length} critical` : undefined}
+                  badgeColor="text-red-600"
+                  isOpen={expandedSection === "suppliers"}
+                  onToggle={() => toggleSection("suppliers")}
+                />
+                <AnimatePresence>
+                  {expandedSection === "suppliers" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      {suppliers.map((sup) => (
+                        <button
+                          key={sup.id}
+                          onClick={() => onNodeClick?.(sup.id)}
+                          className="w-full text-left px-3 py-2.5 rounded-lg border hover:bg-slate-50 transition-colors"
+                          style={{ borderColor: "var(--w-ob-border)" }}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-sm font-medium" style={{ color: "var(--w-ob-text)" }}>{sup.name}</span>
+                            <span className={cn("text-xs font-bold", getHealthColor(sup.health_score))}>
+                              {sup.health_score}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all", getHealthBarColor(sup.health_score))}
+                                style={{ width: `${sup.health_score}%` }}
+                              />
+                            </div>
+                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-semibold", getCriticalityColor(sup.criticality))}>
+                              {sup.criticality}
+                            </span>
+                          </div>
+                          <p className="text-[10px] mt-1" style={{ color: "var(--w-ob-text-faint)" }}>{sup.country}</p>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Parts Section */}
+                <SectionHeader
+                  icon={<Cpu size={16} className="text-teal-500" />}
+                  label="Parts"
+                  count={parts.length}
+                  badge={lowStockParts.length > 0 ? `${lowStockParts.length} low stock` : undefined}
+                  badgeColor="text-amber-600"
+                  isOpen={expandedSection === "parts"}
+                  onToggle={() => toggleSection("parts")}
+                />
+                <AnimatePresence>
+                  {expandedSection === "parts" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      {parts.map((part) => {
+                        const isLow = part.inventory_days < part.safety_stock_days;
+                        return (
+                          <button
+                            key={part.id}
+                            onClick={() => onNodeClick?.(part.id)}
                             className={cn(
-                              "w-full text-left px-3 py-2 rounded-lg border border-slate-600 transition-all hover:border-slate-500",
-                              getHealthBgColor(node.health)
+                              "w-full text-left px-3 py-2.5 rounded-lg border transition-colors",
+                              isLow
+                                ? "border-red-200 bg-red-50 hover:bg-red-100"
+                                : "hover:bg-slate-50"
                             )}
+                            style={!isLow ? { borderColor: "var(--w-ob-border)" } : undefined}
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-slate-100">
-                                {node.label}
-                              </span>
-                              <span
-                                className={cn(
-                                  "text-xs font-bold",
-                                  getHealthColor(node.health)
-                                )}
-                              >
-                                {Math.round(node.health)}%
+                              <span className="text-sm font-medium font-mono" style={{ color: "var(--w-ob-text)" }}>{part.name}</span>
+                              <span className={cn("text-xs font-bold", isLow ? "text-red-600" : "text-green-600")}>
+                                {part.inventory_days}d stock
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400">
-                              {node.type}
-                            </p>
-                          </motion.button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Disruptions Section */}
-                {disruptions.length > 0 && (
-                  <div className="border-t border-slate-700 pt-4">
-                    <motion.button
-                      onClick={() =>
-                        setExpandedSection(
-                          expandedSection === "disruptions" ? null : "disruptions"
-                        )
-                      }
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle size={16} className="text-orange-400" />
-                        <span className="text-sm font-semibold text-white">
-                          Disruptions
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">
-                        {disruptions.length}
-                      </span>
-                    </motion.button>
-
-                    <AnimatePresence>
-                      {expandedSection === "disruptions" && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2 mt-2"
-                        >
-                          {disruptions.map((disruption) => (
-                            <div
-                              key={disruption.id}
-                              className={cn(
-                                "px-3 py-2 rounded-lg border",
-                                getSeverityColor(disruption.severity)
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-sm font-medium">
-                                  {disruption.title}
-                                </p>
-                                <span
-                                  className={cn(
-                                    "text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
-                                    getSeverityBadgeColor(disruption.severity)
-                                  )}
-                                >
-                                  {disruption.severity}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-400 mt-1">
-                                {disruption.affectedSuppliers} supplier
-                                {disruption.affectedSuppliers !== 1
-                                  ? "s"
-                                  : ""}{" "}
-                                affected
-                              </p>
+                            <div className="flex items-center gap-3 text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+                              <span>Safety: {part.safety_stock_days}d</span>
+                              <span className={cn("font-semibold px-1.5 py-0.5 rounded-full", getCriticalityColor(part.criticality))}>
+                                {part.criticality}
+                              </span>
                             </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {/* Pending Actions Section */}
-                {actions.length > 0 && (
-                  <div className="border-t border-slate-700 pt-4">
-                    <motion.button
-                      onClick={() =>
-                        setExpandedSection(
-                          expandedSection === "actions" ? null : "actions"
-                        )
-                      }
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                {/* Orders Section */}
+                <SectionHeader
+                  icon={<ShoppingCart size={16} className="text-violet-500" />}
+                  label="Orders"
+                  count={orders.length}
+                  badge={atRiskOrders.length > 0 ? `${atRiskOrders.length} at risk` : undefined}
+                  badgeColor="text-red-600"
+                  isOpen={expandedSection === "orders"}
+                  onToggle={() => toggleSection("orders")}
+                />
+                <AnimatePresence>
+                  {expandedSection === "orders" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
                     >
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-purple-400" />
-                        <span className="text-sm font-semibold text-white">
-                          Pending Actions
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">
-                        {actions.length}
-                      </span>
-                    </motion.button>
-
-                    <AnimatePresence>
-                      {expandedSection === "actions" && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2 mt-2"
-                        >
-                          {actions.map((action) => (
-                            <div
-                              key={action.id}
-                              className={cn(
-                                "px-3 py-2 rounded-lg border",
-                                getUrgencyColor(action.urgency)
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="text-sm font-medium text-slate-100">
-                                  {action.title}
-                                </p>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 whitespace-nowrap">
-                                  {action.type.replace("_", " ")}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span
-                                  className={cn(
-                                    "text-xs font-semibold",
-                                    action.urgency === "critical"
-                                      ? "text-red-400"
-                                      : action.urgency === "high"
-                                        ? "text-orange-400"
-                                        : "text-yellow-400"
-                                  )}
-                                >
-                                  {action.urgency} urgency
-                                </span>
-                              </div>
+                      {orders.map((ord) => {
+                        const isRisk = ord.status === "at_risk" || ord.status === "delayed";
+                        return (
+                          <button
+                            key={ord.id}
+                            onClick={() => onNodeClick?.(ord.id)}
+                            className={cn(
+                              "w-full text-left px-3 py-2.5 rounded-lg border transition-colors",
+                              isRisk
+                                ? "border-red-200 bg-red-50 hover:bg-red-100"
+                                : "hover:bg-slate-50"
+                            )}
+                            style={!isRisk ? { borderColor: "var(--w-ob-border)" } : undefined}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium" style={{ color: "var(--w-ob-text)" }}>
+                                {ord.customer} {ord.id}
+                              </span>
+                              <span className={cn("text-xs font-bold uppercase", getStatusColor(ord.status))}>
+                                {ord.status.replace("_", " ")}
+                              </span>
                             </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
+                            <div className="flex items-center gap-3 text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+                              <span>{formatRevenue(ord.revenue)}</span>
+                              <span>Due {ord.due_date}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {/* Footer Info */}
-                <div className="border-t border-slate-700 pt-4 pb-4">
-                  <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-3">
+                {/* Customers Section */}
+                <SectionHeader
+                  icon={<Users size={16} className="text-emerald-500" />}
+                  label="Customers"
+                  count={customers.length}
+                  isOpen={expandedSection === "customers"}
+                  onToggle={() => toggleSection("customers")}
+                />
+                <AnimatePresence>
+                  {expandedSection === "customers" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 overflow-hidden"
+                    >
+                      {customers.map((cust) => (
+                        <button
+                          key={cust.id}
+                          onClick={() => onNodeClick?.(cust.id)}
+                          className="w-full text-left px-3 py-2.5 rounded-lg border hover:bg-slate-50 transition-colors"
+                          style={{ borderColor: "var(--w-ob-border)" }}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium" style={{ color: "var(--w-ob-text)" }}>{cust.name}</span>
+                            <span className="text-xs font-bold text-emerald-600">
+                              {formatRevenue(cust.annual_revenue)}/yr
+                            </span>
+                          </div>
+                          <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+                            SLA: {cust.sla_days} day delivery window
+                          </p>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Footer */}
+                <div className="pt-3 pb-4" style={{ borderTop: "1px solid var(--w-ob-border)" }}>
+                  <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
                     <div className="flex items-start gap-2">
-                      <AlertCircle size={14} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-slate-400">
-                        Click on nodes to view detailed metrics and expanded information.
+                      <AlertCircle size={14} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+                        Click any item to locate it on the graph. Click nodes directly for detailed expanded views.
                       </p>
                     </div>
                   </div>
@@ -419,5 +458,51 @@ export function VisualizationSidebar({
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function SectionHeader({
+  icon,
+  label,
+  count,
+  badge,
+  badgeColor,
+  isOpen,
+  onToggle,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  badge?: string;
+  badgeColor?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="pt-3" style={{ borderTop: "1px solid var(--w-ob-border)" }}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="text-sm font-semibold" style={{ color: "var(--w-ob-text)" }}>{label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {badge && (
+            <span className={cn("text-[10px] font-semibold", badgeColor)}>{badge}</span>
+          )}
+          <span className="text-xs" style={{ color: "var(--w-ob-text-faint)" }}>{count}</span>
+          <ChevronLeft
+            size={14}
+            className={cn(
+              "transition-transform",
+              isOpen ? "-rotate-90" : "rotate-0"
+            )}
+            style={{ color: "var(--w-ob-text-faint)" }}
+          />
+        </div>
+      </button>
+    </div>
   );
 }

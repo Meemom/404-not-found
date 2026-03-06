@@ -2,59 +2,99 @@
 
 import { Handle, Position } from "reactflow";
 import { motion } from "framer-motion";
-import { TrendingUp } from "lucide-react";
+import { Factory } from "lucide-react";
+
+export interface SupplierData {
+  id: string;
+  name: string;
+  country: string;
+  health_score: number;
+  criticality: string;
+  onClick?: (nodeId: string) => void;
+}
 
 interface SupplierNodeProps {
-  data: {
-    label: string;
-    health: number;
-    onClick?: (nodeId: string) => void;
-  };
+  data: SupplierData;
   id: string;
 }
 
 export function SupplierNode({ data, id }: SupplierNodeProps) {
   const healthColor =
-    data.health > 70 ? "#10b981" : data.health > 40 ? "#f59e0b" : "#ef4444";
+    data.health_score > 70
+      ? "#10b981"
+      : data.health_score > 40
+        ? "#f59e0b"
+        : "#ef4444";
+
+  const critBadge =
+    data.criticality === "critical"
+      ? "bg-red-50 text-red-600 border-red-200"
+      : data.criticality === "high"
+        ? "bg-orange-50 text-orange-600 border-orange-200"
+        : "bg-blue-50 text-blue-600 border-blue-200";
 
   return (
-    <div
-      onClick={() => data.onClick?.(id)}
-      className="cursor-pointer"
-    >
-      <Handle type="target" position={Position.Top} />
+    <div onClick={() => data.onClick?.(id)} className="cursor-pointer">
+      <Handle type="target" position={Position.Left} className="!bg-blue-500 !w-2 !h-2" />
 
       <motion.div
-        whileHover={{ scale: 1.1 }}
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
-        className="relative w-20 h-20 rounded-xl bg-gradient-to-br from-orange-900 to-orange-800 border-2 border-orange-400 shadow-lg flex items-center justify-center group hover:shadow-xl transition-shadow"
-        style={{ borderColor: healthColor }}
+        className="relative w-[180px] rounded-xl border shadow-sm overflow-hidden"
+        style={{
+          borderColor: "var(--w-ob-border)",
+          background: "#FFFFFF",
+        }}
       >
-        <div
-          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity"
-          style={{ backgroundColor: healthColor }}
-        />
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Factory size={14} className="text-blue-500" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                Supplier
+              </span>
+            </div>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${critBadge}`}>
+              {data.criticality}
+            </span>
+          </div>
 
-        <motion.div
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <TrendingUp size={24} style={{ color: healthColor }} />
-        </motion.div>
+          {/* Name */}
+          <p className="text-sm font-semibold mb-1" style={{ color: "var(--w-ob-text)" }}>{data.name}</p>
+          <p className="text-[10px] mb-3" style={{ color: "var(--w-ob-text-faint)" }}>{data.country}</p>
 
-        <div
-          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs font-semibold whitespace-nowrap"
-          style={{ color: healthColor }}
-        >
-          {Math.round(data.health)}%
+          {/* Health bar */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: healthColor }}
+                initial={{ width: 0 }}
+                animate={{ width: `${data.health_score}%` }}
+                transition={{ duration: 1, delay: 0.3 }}
+              />
+            </div>
+            <span className="text-[10px] font-bold" style={{ color: healthColor }}>
+              {data.health_score}%
+            </span>
+          </div>
         </div>
       </motion.div>
 
-      <div className="mt-10 text-center">
-        <p className="text-xs font-semibold text-gray-200">{data.label}</p>
-      </div>
-
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={Position.Right} className="!bg-blue-500 !w-2 !h-2" />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="alt-target"
+        className="!bg-yellow-500 !w-2 !h-2"
+      />
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="alt-source"
+        className="!bg-yellow-500 !w-2 !h-2"
+      />
     </div>
   );
 }

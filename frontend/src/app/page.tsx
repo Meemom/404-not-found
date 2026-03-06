@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -8,51 +8,42 @@ import ReactFlow, {
   Background,
   useNodesState,
   useEdgesState,
-  MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
 import {
-  PerceptionNode,
-  RiskNode,
-  PlanningNode,
-  ActionNode,
-  StockNode,
+  EventNode,
   SupplierNode,
+  PartNode,
   OrderNode,
-  GraphNode,
-  RadarNode,
+  CustomerNode,
 } from "@/components/visualization/nodes";
 import { AnimatedEdge } from "@/components/visualization/edges/AnimatedEdge";
 import {
   NodeOverlay,
-  PerceptionExpandedView,
-  RiskExpandedView,
-  PlanningExpandedView,
-  ActionExpandedView,
-  StockExpandedView,
+  EventExpandedView,
   SupplierExpandedView,
+  PartExpandedView,
   OrderExpandedView,
-  GraphExpandedView,
-  RadarExpandedView,
+  CustomerExpandedView,
 } from "@/components/visualization/overlays";
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 
 const nodeTypes = {
-  perception: PerceptionNode,
-  risk: RiskNode,
-  planning: PlanningNode,
-  action: ActionNode,
-  stock: StockNode,
+  event: EventNode,
   supplier: SupplierNode,
+  part: PartNode,
   order: OrderNode,
-  graph: GraphNode,
-  radar: RadarNode,
+  customer: CustomerNode,
 };
 
 const edgeTypes = {
   animated: AnimatedEdge,
 };
+
+// Column X positions for the left-to-right flow
+const COL = { event: 0, supplier: 280, part: 560, order: 840, customer: 1120 };
+const ROW_GAP = 160;
 
 export default function Home() {
   const [selectedNode, setSelectedNode] = useState<{
@@ -60,394 +51,307 @@ export default function Home() {
     type: string;
     label: string;
   } | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarNodeClicked, setSidebarNodeClicked] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Define nodes for the supply chain visualization
-  const initialNodes: Node[] = [
-    // Top layer: Perception & Risk
-    {
-      id: "perception",
-      data: {
-        label: "Perception",
-        health: 87,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Perception Agent",
-            label: "Supply Chain Perception",
-          });
-        },
-      },
-      position: { x: 100, y: 0 },
-      type: "perception",
-    },
-    {
-      id: "risk",
-      data: {
-        label: "Risk Engine",
-        health: 64,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Risk Engine",
-            label: "Risk Assessment",
-          });
-        },
-      },
-      position: { x: 450, y: 0 },
-      type: "risk",
-    },
-
-    // Middle layer: Planning & Stock & Supplier
-    {
-      id: "planning",
-      data: {
-        label: "Planning",
-        health: 92,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Planning Agent",
-            label: "Mitigation Planning",
-          });
-        },
-      },
-      position: { x: 0, y: 150 },
-      type: "planning",
-    },
-    {
-      id: "stock",
-      data: {
-        label: "Stock Monitor",
-        health: 45,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Inventory",
-            label: "Inventory Status",
-          });
-        },
-      },
-      position: { x: 200, y: 150 },
-      type: "stock",
-    },
-    {
-      id: "supplier",
-      data: {
-        label: "Supplier Health",
-        health: 72,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Supplier Network",
-            label: "Supplier Status",
-          });
-        },
-      },
-      position: { x: 400, y: 150 },
-      type: "supplier",
-    },
-    {
-      id: "graph",
-      data: {
-        label: "Supply Graph",
-        health: 75,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Network Graph",
-            label: "Supply Chain Network",
-          });
-        },
-      },
-      position: { x: 600, y: 150 },
-      type: "graph",
-    },
-
-    // Bottom layer: Action & Order & Radar
-    {
-      id: "action",
-      data: {
-        label: "Action Agent",
-        health: 88,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Action Agent",
-            label: "Action Generation",
-          });
-        },
-      },
-      position: { x: 100, y: 300 },
-      type: "action",
-    },
-    {
-      id: "order",
-      data: {
-        label: "Orders",
-        health: 58,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Order Tracking",
-            label: "Customer Orders",
-          });
-        },
-      },
-      position: { x: 350, y: 300 },
-      type: "order",
-    },
-    {
-      id: "radar",
-      data: {
-        label: "Threat Radar",
-        health: 72,
-        onClick: (nodeId) => {
-          setSelectedNode({
-            id: nodeId,
-            type: "Early Warning",
-            label: "Disruption Radar",
-          });
-        },
-      },
-      position: { x: 600, y: 300 },
-      type: "radar",
-    },
-  ];
-
-  const initialEdges: Edge[] = [
-    // Perception and Risk edges
-    {
-      id: "perception-planning",
-      source: "perception",
-      target: "planning",
-      type: "animated",
-      data: { health: 87 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "perception-stock",
-      source: "perception",
-      target: "stock",
-      type: "animated",
-      data: { health: 75 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "perception-supplier",
-      source: "perception",
-      target: "supplier",
-      type: "animated",
-      data: { health: 80 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-
-    // Risk edges
-    {
-      id: "risk-planning",
-      source: "risk",
-      target: "planning",
-      type: "animated",
-      data: { health: 64 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "risk-order",
-      source: "risk",
-      target: "order",
-      type: "animated",
-      data: { health: 58 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "risk-radar",
-      source: "risk",
-      target: "radar",
-      type: "animated",
-      data: { health: 72 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-
-    // Middle layer edges
-    {
-      id: "stock-graph",
-      source: "stock",
-      target: "graph",
-      type: "animated",
-      data: { health: 70 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "supplier-graph",
-      source: "supplier",
-      target: "graph",
-      type: "animated",
-      data: { health: 75 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-
-    // Planning to Action
-    {
-      id: "planning-action",
-      source: "planning",
-      target: "action",
-      type: "animated",
-      data: { health: 92 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-
-    // Action to Order and Outputs
-    {
-      id: "action-order",
-      source: "action",
-      target: "order",
-      type: "animated",
-      data: { health: 80 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-    {
-      id: "graph-radar",
-      source: "graph",
-      target: "radar",
-      type: "animated",
-      data: { health: 75 },
-      markerEnd: MarkerType.ArrowClosed,
-      animated: true,
-    },
-  ];
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // Sidebar data 
-  const sidebarNodes = [
-    { id: "perception", label: "Perception", type: "Perception Agent", health: 87 },
-    { id: "risk", label: "Risk Engine", type: "Risk Engine", health: 64 },
-    { id: "planning", label: "Planning", type: "Planning Agent", health: 92 },
-    { id: "stock", label: "Stock Monitor", type: "Inventory", health: 45 },
-    { id: "supplier", label: "Supplier Health", type: "Supplier Network", health: 72 },
-    { id: "graph", label: "Supply Graph", type: "Network Graph", health: 75 },
-    { id: "action", label: "Action Agent", type: "Action Agent", health: 88 },
-    { id: "order", label: "Orders", type: "Order Tracking", health: 58 },
-    { id: "radar", label: "Threat Radar", type: "Early Warning", health: 72 },
-  ];
-
-  const sidebarDisruptions = [
-    {
-      id: "DIS-2026-002",
-      title: "Taiwan Strait Shipping",
-      severity: "high" as const,
-      affectedSuppliers: 2,
-    },
-    {
-      id: "DIS-2026-003",
-      title: "Semiconductor Volatility",
-      severity: "medium" as const,
-      affectedSuppliers: 1,
-    },
-  ];
-
-  const sidebarActions = [
-    {
-      id: "act-demo-001",
-      title: "Supplier Outreach — Infineon",
-      urgency: "critical" as const,
-      type: "email" as const,
-    },
-    {
-      id: "act-demo-002",
-      title: "Executive Escalation",
-      urgency: "high" as const,
-      type: "escalation" as const,
-    },
-    {
-      id: "act-demo-003",
-      title: "BMW Proactive Communication",
-      urgency: "high" as const,
-      type: "email" as const,
-    },
-  ];
-
-  const handleSidebarNodeClick = (nodeId: string) => {
-    const nodeInfo = sidebarNodes.find((n) => n.id === nodeId);
-    if (nodeInfo) {
-      setSelectedNode({
-        id: nodeId,
-        type: nodeInfo.type,
-        label: nodeInfo.label,
-      });
-      setSidebarOpen(false);
-    }
+  const openOverlay = (id: string, type: string, label: string) => {
+    setSelectedNode({ id, type, label });
   };
+
+  // ── NODES ──
+  const initialNodes: Node[] = [
+    // EVENTS (column 0)
+    {
+      id: "evt-taiwan",
+      type: "event",
+      position: { x: COL.event, y: 0 },
+      data: {
+        id: "EVT-001",
+        type: "Geopolitical",
+        region: "Taiwan Strait Shipping Congestion",
+        severity: 8,
+        confidence: 85,
+        expected_delay_days: 14,
+        start_time: "2026-03-01",
+        onClick: () => openOverlay("evt-taiwan", "Event", "Taiwan Strait Disruption"),
+      },
+    },
+    {
+      id: "evt-semi",
+      type: "event",
+      position: { x: COL.event, y: ROW_GAP * 1.5 },
+      data: {
+        id: "EVT-002",
+        type: "Market",
+        region: "Semiconductor Price Surge",
+        severity: 5,
+        confidence: 72,
+        expected_delay_days: 7,
+        start_time: "2026-02-28",
+        onClick: () => openOverlay("evt-semi", "Event", "Semiconductor Price Surge"),
+      },
+    },
+
+    // SUPPLIERS (column 1)
+    {
+      id: "sup-tsmc",
+      type: "supplier",
+      position: { x: COL.supplier, y: 0 },
+      data: {
+        id: "SUP-001",
+        name: "TSMC",
+        country: "Taiwan",
+        health_score: 35,
+        criticality: "critical",
+        onClick: () => openOverlay("sup-tsmc", "Supplier", "TSMC"),
+      },
+    },
+    {
+      id: "sup-infineon",
+      type: "supplier",
+      position: { x: COL.supplier, y: ROW_GAP },
+      data: {
+        id: "SUP-002",
+        name: "Infineon",
+        country: "Germany",
+        health_score: 82,
+        criticality: "high",
+        onClick: () => openOverlay("sup-infineon", "Supplier", "Infineon Technologies"),
+      },
+    },
+    {
+      id: "sup-stmicro",
+      type: "supplier",
+      position: { x: COL.supplier, y: ROW_GAP * 2 },
+      data: {
+        id: "SUP-003",
+        name: "STMicro",
+        country: "Switzerland",
+        health_score: 90,
+        criticality: "medium",
+        onClick: () => openOverlay("sup-stmicro", "Supplier", "STMicroelectronics"),
+      },
+    },
+
+    // PARTS (column 2)
+    {
+      id: "part-mcu",
+      type: "part",
+      position: { x: COL.part, y: 0 },
+      data: {
+        id: "MCU-32BIT-AUTO",
+        name: "MCU-32BIT-AUTO",
+        criticality: "critical",
+        inventory_days: 8,
+        lead_time_days: 21,
+        safety_stock_days: 14,
+        onClick: () => openOverlay("part-mcu", "Part", "MCU-32BIT-AUTO"),
+      },
+    },
+    {
+      id: "part-pmic",
+      type: "part",
+      position: { x: COL.part, y: ROW_GAP },
+      data: {
+        id: "POWER-MGMT-IC",
+        name: "POWER-MGMT-IC",
+        criticality: "high",
+        inventory_days: 18,
+        lead_time_days: 14,
+        safety_stock_days: 10,
+        onClick: () => openOverlay("part-pmic", "Part", "POWER-MGMT-IC"),
+      },
+    },
+    {
+      id: "part-can",
+      type: "part",
+      position: { x: COL.part, y: ROW_GAP * 2 },
+      data: {
+        id: "CAN-CONTROLLER",
+        name: "CAN-CONTROLLER",
+        criticality: "medium",
+        inventory_days: 30,
+        lead_time_days: 10,
+        safety_stock_days: 7,
+        onClick: () => openOverlay("part-can", "Part", "CAN-CONTROLLER"),
+      },
+    },
+
+    // ORDERS (column 3)
+    {
+      id: "ord-bmw",
+      type: "order",
+      position: { x: COL.order, y: 0 },
+      data: {
+        id: "#DE-8821",
+        customer: "BMW AG",
+        due_date: "Mar 10",
+        revenue: 2_250_000,
+        margin: 18,
+        status: "at_risk",
+        onClick: () => openOverlay("ord-bmw", "Order", "BMW Order #DE-8821"),
+      },
+    },
+    {
+      id: "ord-vw",
+      type: "order",
+      position: { x: COL.order, y: ROW_GAP },
+      data: {
+        id: "#DE-9103",
+        customer: "VW Group",
+        due_date: "Mar 21",
+        revenue: 1_989_000,
+        margin: 15,
+        status: "at_risk",
+        onClick: () => openOverlay("ord-vw", "Order", "VW Order #DE-9103"),
+      },
+    },
+    {
+      id: "ord-bosch",
+      type: "order",
+      position: { x: COL.order, y: ROW_GAP * 2 },
+      data: {
+        id: "#DE-9250",
+        customer: "Bosch GmbH",
+        due_date: "Apr 1",
+        revenue: 710_000,
+        margin: 22,
+        status: "on_track",
+        onClick: () => openOverlay("ord-bosch", "Order", "Bosch Order #DE-9250"),
+      },
+    },
+
+    // CUSTOMERS (column 4)
+    {
+      id: "cust-bmw",
+      type: "customer",
+      position: { x: COL.customer, y: 0 },
+      data: {
+        id: "CUST-001",
+        name: "BMW AG",
+        annual_revenue: 85_000_000,
+        sla_days: 14,
+        onClick: () => openOverlay("cust-bmw", "Customer", "BMW AG"),
+      },
+    },
+    {
+      id: "cust-vw",
+      type: "customer",
+      position: { x: COL.customer, y: ROW_GAP },
+      data: {
+        id: "CUST-002",
+        name: "VW Group",
+        annual_revenue: 72_000_000,
+        sla_days: 21,
+        onClick: () => openOverlay("cust-vw", "Customer", "Volkswagen Group"),
+      },
+    },
+    {
+      id: "cust-bosch",
+      type: "customer",
+      position: { x: COL.customer, y: ROW_GAP * 2 },
+      data: {
+        id: "CUST-003",
+        name: "Bosch GmbH",
+        annual_revenue: 31_000_000,
+        sla_days: 30,
+        onClick: () => openOverlay("cust-bosch", "Customer", "Bosch GmbH"),
+      },
+    },
+  ];
+
+  // ── EDGES ──
+  const initialEdges: Edge[] = [
+    // AFFECTS: event → supplier
+    { id: "e-tw-tsmc", source: "evt-taiwan", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
+    { id: "e-tw-inf", source: "evt-taiwan", target: "sup-infineon", type: "animated", data: { relationship: "affects" } },
+    { id: "e-semi-tsmc", source: "evt-semi", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
+
+    // SUPPLIES: supplier → part
+    { id: "e-tsmc-mcu", source: "sup-tsmc", target: "part-mcu", type: "animated", data: { relationship: "supplies" } },
+    { id: "e-tsmc-pmic", source: "sup-tsmc", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
+    { id: "e-inf-can", source: "sup-infineon", target: "part-can", type: "animated", data: { relationship: "supplies" } },
+    { id: "e-stm-pmic", source: "sup-stmicro", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
+
+    // REQUIRED_FOR: part → order
+    { id: "e-mcu-bmw", source: "part-mcu", target: "ord-bmw", type: "animated", data: { relationship: "required_for" } },
+    { id: "e-mcu-vw", source: "part-mcu", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
+    { id: "e-pmic-vw", source: "part-pmic", target: "ord-vw", type: "animated", data: { relationship: "required_for" } },
+    { id: "e-can-bosch", source: "part-can", target: "ord-bosch", type: "animated", data: { relationship: "required_for" } },
+
+    // BELONGS_TO: order → customer
+    { id: "e-bmw-ord-cust", source: "ord-bmw", target: "cust-bmw", type: "animated", data: { relationship: "belongs_to" } },
+    { id: "e-vw-ord-cust", source: "ord-vw", target: "cust-vw", type: "animated", data: { relationship: "belongs_to" } },
+    { id: "e-bosch-ord-cust", source: "ord-bosch", target: "cust-bosch", type: "animated", data: { relationship: "belongs_to" } },
+
+    // ALTERNATIVE_SUPPLIER: supplier → supplier (dashed)
+    {
+      id: "e-inf-alt-tsmc",
+      source: "sup-infineon",
+      sourceHandle: "alt-source",
+      target: "sup-tsmc",
+      targetHandle: "alt-target",
+      type: "animated",
+      data: { relationship: "alternative_supplier" },
+    },
+  ];
+
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   const expandedViewComponent = useMemo(() => {
     if (!selectedNode) return null;
-
-    const componentMap: Record<string, React.ComponentType<any>> = {
-      "Perception Agent": PerceptionExpandedView,
-      "Risk Engine": RiskExpandedView,
-      "Planning Agent": PlanningExpandedView,
-      "Action Agent": ActionExpandedView,
-      Inventory: StockExpandedView,
-      "Supplier Network": SupplierExpandedView,
-      "Order Tracking": OrderExpandedView,
-      "Network Graph": GraphExpandedView,
-      "Early Warning": RadarExpandedView,
+    const map: Record<string, React.ComponentType<{ nodeId: string }>> = {
+      Event: EventExpandedView,
+      Supplier: SupplierExpandedView,
+      Part: PartExpandedView,
+      Order: OrderExpandedView,
+      Customer: CustomerExpandedView,
     };
-
-    const Component = componentMap[selectedNode.type];
-    return Component ? (
-      <Component nodeId={selectedNode.id} />
-    ) : null;
+    const Component = map[selectedNode.type];
+    return Component ? <Component nodeId={selectedNode.id} /> : null;
   }, [selectedNode]);
 
   return (
-    <div className="w-full h-screen flex flex-col bg-slate-950">
-      {/* Sidebar */}
-      <VisualizationSidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        nodes={sidebarNodes}
-        disruptions={sidebarDisruptions}
-        actions={sidebarActions}
-        onNodeClick={handleSidebarNodeClick}
-        overallHealth={73}
-        revenueAtRisk={4239000}
-        activeAlerts={3}
-      />
+    <div className="w-full h-screen flex flex-col" style={{ background: "var(--w-ob-bg)" }}>
       {/* Header */}
-      <div className="bg-gradient-to-b from-slate-900 to-slate-900/50 border-b border-slate-700 px-6 py-4 backdrop-blur">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-1">
-            Supply Chain Visualization
-          </h1>
-          <p className="text-sm text-slate-400">
-            Real-time monitoring of AutoParts GmbH supply chain health and risk
-            factors
-          </p>
+      <div className="border-b px-6 py-4 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
+              Supply Chain Graph
+            </h1>
+            <p className="text-xs" style={{ color: "var(--w-ob-text-faint)" }}>
+              EVENT &rarr; SUPPLIER &rarr; PART &rarr; ORDER &rarr; CUSTOMER
+            </p>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-[10px]">
+            {[
+              { color: "#ef4444", label: "Affects" },
+              { color: "#3b82f6", label: "Supplies" },
+              { color: "#14b8a6", label: "Required for" },
+              { color: "#10b981", label: "Belongs to" },
+              { color: "#eab308", label: "Alt. supplier", dashed: true },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-1.5">
+                <div
+                  className="w-4 h-0.5 rounded"
+                  style={{
+                    backgroundColor: item.color,
+                    borderBottom: item.dashed ? `2px dashed ${item.color}` : undefined,
+                  }}
+                />
+                <span style={{ color: "var(--w-ob-text-muted)" }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Flow Container */}
+      {/* Flow Canvas */}
       <div className="flex-1 relative overflow-hidden">
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgb(15, 23, 42)",
-          }}
-        >
+        <div style={{ width: "100%", height: "100%", background: "var(--w-ob-bg)" }}>
           <svg style={{ position: "absolute", width: 0, height: 0 }}>
             <defs>
               <filter id="glow">
@@ -468,19 +372,16 @@ export default function Home() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
+            fitViewOptions={{ padding: 0.15 }}
+            minZoom={0.4}
+            maxZoom={1.5}
+            proOptions={{ hideAttribution: true }}
           >
-            <Background
-              color="#334155"
-              gap={16}
-              size={1}
-              style={{
-                backgroundColor: "rgb(15, 23, 42)",
-              }}
-            />
+            <Background color="#CBD5E1" gap={20} size={1} style={{ background: "var(--w-ob-bg)" }} />
             <Controls
               style={{
-                backgroundColor: "rgba(15, 23, 42, 0.8)",
-                border: "1px solid rgb(51, 65, 85)",
+                background: "var(--w-ob-surface)",
+                border: "1px solid var(--w-ob-border)",
                 borderRadius: "8px",
               }}
             />
@@ -488,7 +389,37 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Overlay for expanded node view */}
+      {/* Sidebar */}
+      <VisualizationSidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((o) => !o)}
+        events={[
+          { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
+          { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
+        ]}
+        suppliers={[
+          { id: "sup-tsmc", name: "TSMC", country: "Taiwan", health_score: 35, criticality: "critical" },
+          { id: "sup-infineon", name: "Infineon", country: "Germany", health_score: 82, criticality: "high" },
+          { id: "sup-stmicro", name: "STMicro", country: "Switzerland", health_score: 90, criticality: "medium" },
+        ]}
+        parts={[
+          { id: "part-mcu", name: "MCU-32BIT-AUTO", criticality: "critical", inventory_days: 8, safety_stock_days: 14 },
+          { id: "part-pmic", name: "POWER-MGMT-IC", criticality: "high", inventory_days: 18, safety_stock_days: 10 },
+          { id: "part-can", name: "CAN-CONTROLLER", criticality: "medium", inventory_days: 30, safety_stock_days: 7 },
+        ]}
+        orders={[
+          { id: "ord-bmw", customer: "BMW AG", due_date: "Mar 10", revenue: 2_250_000, status: "at_risk" },
+          { id: "ord-vw", customer: "VW Group", due_date: "Mar 21", revenue: 1_989_000, status: "at_risk" },
+          { id: "ord-bosch", customer: "Bosch GmbH", due_date: "Apr 1", revenue: 710_000, status: "on_track" },
+        ]}
+        customers={[
+          { id: "cust-bmw", name: "BMW AG", annual_revenue: 85_000_000, sla_days: 14 },
+          { id: "cust-vw", name: "VW Group", annual_revenue: 72_000_000, sla_days: 21 },
+          { id: "cust-bosch", name: "Bosch GmbH", annual_revenue: 31_000_000, sla_days: 30 },
+        ]}
+      />
+
+      {/* Overlay */}
       <NodeOverlay
         isOpen={!!selectedNode}
         nodeId={selectedNode?.id ?? null}
@@ -499,11 +430,10 @@ export default function Home() {
         {expandedViewComponent}
       </NodeOverlay>
 
-      {/* Footer info */}
-      <div className="bg-slate-900 border-t border-slate-700 px-6 py-3">
-        <p className="text-xs text-slate-500">
-          Click on any node to view detailed metrics. Edge colors and particle
-          flow indicate health status.
+      {/* Footer */}
+      <div className="border-t px-6 py-2.5 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
+        <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
+          Click any node to expand. Edge colors indicate relationship type. Particle flow shows data direction.
         </p>
       </div>
     </div>
