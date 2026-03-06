@@ -37,6 +37,7 @@ import { useWardenStore } from "@/lib/store";
 import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploadedData, getScannedEvents } from "@/lib/api";
 import type { ScannedEvent } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
+import WardenAvatar from "@/components/WardenAvatar";
 import type { BOMItem } from "@/lib/types";
 
 const nodeTypes = {
@@ -484,6 +485,7 @@ export default function Home() {
       <div className="border-b px-6 py-4 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
+            <WardenAvatar size={50} animation="idle" />
             <div>
               <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--w-ob-text)" }}>
                 Warden
