@@ -26,6 +26,7 @@ import { updateCompanyProfile, getCompanyProfile, uploadDocument } from "@/lib/a
 import { useRouter } from "next/navigation";
 import Typewriter from "@/components/onboarding/Typewriter";
 import GlowingOrb from "@/components/onboarding/GlowingOrb";
+import WardenAvatar from "@/components/WardenAvatar";
 
 /* ── Floating network nodes for welcome background ── */
 interface FloatingNode {
@@ -357,6 +358,15 @@ function TransitionScreen({ companyName, onDone }: { companyName: string; onDone
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
+          <motion.div
+            className="flex justify-center mb-6"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <WardenAvatar size={150} animation="running" />
+          </motion.div>
+
           <motion.p
             className="text-blue-200 text-sm font-medium tracking-widest uppercase mb-4"
             initial={{ opacity: 0, y: 10 }}
@@ -677,8 +687,12 @@ export default function OnboardingPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 1, ease: "easeOut" }}
                   className="mb-6"
+                  style={{ position: "relative" }}
                 >
                   <GlowingOrb size={350} />
+                  <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+                    <WardenAvatar size={200} animation="idle" />
+                  </div>
                 </motion.div>
 
                 {/* Typewriter tagline */}
