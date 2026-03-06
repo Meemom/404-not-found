@@ -51,10 +51,10 @@ export interface SupplyGlobeProps {
 // CONSTANTS
 
 const NODE_COLORS = {
-  hq: 0x1E293B,
-  tier1: 0x8C7BC5,
-  tier2: 0xB381FF,
-  disrupted: 0xef4444,
+  hq: 0x3B82F6,
+  tier1: 0x8B5CF6,
+  tier2: 0xA78BFA,
+  disrupted: 0xEC4899,
 };
 
 const NODE_SIZES = {
@@ -64,14 +64,14 @@ const NODE_SIZES = {
 };
 
 const ARC_COLORS = {
-  on_track: 0x0d9488,
-  at_risk: 0xf59e0b,
-  delayed: 0xef4444,
+  on_track: 0x818CF8,
+  at_risk: 0xD946EF,
+  delayed: 0xEC4899,
 };
 
 const ARC_OPACITY = {
   on_track: 0.7,
-  at_risk: 0.8,
+  at_risk: 0.85,
   delayed: 0.9,
 };
 
@@ -174,10 +174,10 @@ function createGlobe(): THREE.Mesh {
   const geo = new THREE.SphereGeometry(1.0, 64, 64);
   const mat = new THREE.MeshPhongMaterial({
     color: 0xe8ecf1,
-    emissive: 0xd0d8e0,
-    emissiveIntensity: 0.12,
-    specular: 0xEFF6FF,
-    shininess: 20,
+    emissive: 0x1a2035,
+    emissiveIntensity: 0.3,
+    specular: 0x445577,
+    shininess: 50,
   });
   return new THREE.Mesh(geo, mat);
 }
@@ -294,19 +294,23 @@ export default function SupplyGlobe({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.4;
     container.appendChild(renderer.domElement);
 
-    // --- Lighting (tuned for white globe) ---
-    scene.add(new THREE.AmbientLight(0x1E293B, 0.6));
+    // --- Lighting ---
+    scene.add(new THREE.AmbientLight(0x8899bb, 1.0));
 
-    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.8);
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
-    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.4);
+    const fill = new THREE.DirectionalLight(0xc8d8f0, 0.8);
     fill.position.set(-3, -1, 2);
     scene.add(fill);
+
+    const back = new THREE.DirectionalLight(0x6688bb, 0.5);
+    back.position.set(0, -2, -5);
+    scene.add(back);
 
     // globe group holds all rotating parts so they rotate together
     const globeGroup = new THREE.Group();
@@ -375,9 +379,9 @@ export default function SupplyGlobe({
         const pulse = group.getObjectByName("pulseRing") as THREE.Mesh | undefined;
         if (!pulse) return;
         const phase = (elapsed % 2) / 2;
-        pulse.scale.setScalar(1 + phase * 2);
+        pulse.scale.setScalar(1 + phase * 2.5);
         if (pulse.material instanceof THREE.MeshBasicMaterial) {
-          pulse.material.opacity = 0.5 * (1 - phase);
+          pulse.material.opacity = 0.6 * (1 - phase);
         }
       });
 
@@ -479,7 +483,9 @@ export default function SupplyGlobe({
         );
         if (entry) {
           const node = nodesRef.current.find((n) => n.id === entry[0]);
-          if (node && onSupplierSelectRef.current) onSupplierSelectRef.current(node);
+          if (node && onSupplierSelectRef.current) {
+            onSupplierSelectRef.current(node);
+          }
         }
       }
     };
@@ -678,7 +684,7 @@ export default function SupplyGlobe({
 
     // Pulse ring for at-risk / disrupted
     if (node.status === "disrupted" || node.status === "at_risk") {
-      const pc = node.status === "disrupted" ? NODE_COLORS.disrupted : NODE_COLORS.tier1;
+      const pc = NODE_COLORS.disrupted; // unified pink for all risk states
       const pulse = new THREE.Mesh(
         new THREE.RingGeometry(size + 0.005, size + 0.025, 32),
         new THREE.MeshBasicMaterial({ color: pc, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
@@ -733,7 +739,7 @@ export default function SupplyGlobe({
       const thetaLen = (zone.lng_max - zone.lng_min) * (Math.PI / 180);
       const geo = new THREE.SphereGeometry(r, 32, 32, thetaStart, thetaLen, phiStart, phiLen);
       meshes.push(
-        new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity, side: THREE.DoubleSide }))
+        new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xEC4899, transparent: true, opacity, side: THREE.DoubleSide }))
       );
     });
     return meshes;

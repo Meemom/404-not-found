@@ -26,6 +26,10 @@
   --w-blue: #3B82F6;
   --w-blue-dark: #2563EB;
   --w-blue-light: #93C5FD;
+  --w-purple: #8B5CF6;
+  --w-purple-light: #A78BFA;
+  --w-pink: #EC4899;
+  --w-pink-light: #F472B6;
 
   /* ── Light theme (onboarding) ── */
   --w-ob-bg: #F8FAFC;
@@ -69,6 +73,10 @@
   --color-warden-teal: var(--w-teal);
   --color-warden-coral: var(--w-coral);
   --color-warden-blue: var(--w-blue);
+  --color-warden-purple: var(--w-purple);
+  --color-warden-purple-light: var(--w-purple-light);
+  --color-warden-pink: var(--w-pink);
+  --color-warden-pink-light: var(--w-pink-light);
 }
 
 /* ═══ Global Resets & Base ═══ */
