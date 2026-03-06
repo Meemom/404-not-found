@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ReactFlow, {
   Node,
   Edge,
@@ -179,6 +180,8 @@ const COL = { event: 0, supplier: 280, part: 560, order: 840, customer: 1120 };
 const ROW_GAP = 160;
 
 export default function Home() {
+  const router = useRouter();
+  const { setCompany, setDashboard, setPendingActions, onboarded } = useWardenStore();
   const [selectedNode, setSelectedNode] = useState<{
     id: string;
     type: string;
@@ -186,12 +189,19 @@ export default function Home() {
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<ViewTab>("graph");
-  const { setCompany, setDashboard, setPendingActions } = useWardenStore();
   const [uploadedSuppliers, setUploadedSuppliers] = useState<any[]>([]);
   const [uploadedSLA, setUploadedSLA] = useState<any[]>([]);
   const [uploadedBOM, setUploadedBOM] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!onboarded) {
+      router.replace("/onboarding");
+    }
+  }, [onboarded, router]);
+
+  useEffect(() => {
+    if (!onboarded) return;
+
     async function loadInitialData() {
       try {
         const [company, overview, actions, uploaded] = await Promise.all([
@@ -227,7 +237,7 @@ export default function Home() {
     }, 30_000);
 
     return () => clearInterval(interval);
-  }, [setCompany, setDashboard, setPendingActions]);
+  }, [onboarded, setCompany, setDashboard, setPendingActions]);
 
   const openOverlay = useCallback((id: string, type: string, label: string) => {
     setSelectedNode({ id, type, label });
@@ -451,6 +461,8 @@ export default function Home() {
     const Component = map[selectedNode.type];
     return Component ? <Component nodeId={selectedNode.id} /> : null;
   }, [selectedNode]);
+
+  if (!onboarded) return null;
 
   return (
     <div className="w-full h-screen flex flex-col" style={{ background: "var(--w-ob-bg)" }}>

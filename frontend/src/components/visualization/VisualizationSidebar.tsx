@@ -64,7 +64,7 @@ interface VisualizationSidebarProps {
   orders: OrderSummary[];
   customers: CustomerSummary[];
   onNodeClick?: (nodeId: string) => void;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (tab: "graph" | "globe" | "stockroom") => void;
 }
 
 type Section = "events" | "suppliers" | "parts" | "orders" | "customers" | null;

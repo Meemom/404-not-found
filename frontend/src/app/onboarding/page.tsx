@@ -249,7 +249,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { setCompany } = useWardenStore();
+  const { setCompany, setOnboarded } = useWardenStore();
 
   // tracking uploads
   const [uploadedSuppliers, setUploadedSuppliers] = useState<any[] | null>(null);
@@ -372,9 +372,11 @@ export default function OnboardingPage() {
       });
       const profile = await getCompanyProfile();
       setCompany(profile);
+      setOnboarded(true);
       router.push("/");
     } catch (err) {
       console.error("Onboarding error:", err);
+      setOnboarded(true);
       router.push("/");
     } finally {
       setLoading(false);
@@ -620,7 +622,7 @@ export default function OnboardingPage() {
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. AutoParts GmbH"
+                    placeholder="e.g. Andersen Corporation"
                     className="ob-input"
                   />
                 </div>
@@ -631,7 +633,7 @@ export default function OnboardingPage() {
                       type="text"
                       value={hqCity}
                       onChange={(e) => setHqCity(e.target.value)}
-                      placeholder="e.g. Frankfurt"
+                      placeholder="e.g. Toronto"
                       className="ob-input"
                     />
                   </div>
@@ -641,7 +643,7 @@ export default function OnboardingPage() {
                       type="text"
                       value={hqCountry}
                       onChange={(e) => setHqCountry(e.target.value)}
-                      placeholder="e.g. Germany"
+                      placeholder="e.g. Canada"
                       className="ob-input"
                     />
                   </div>
