@@ -62,10 +62,17 @@ _actions_store: list[dict] = [
 ]
 
 
+def _normalize_action(action: dict) -> dict:
+    normalized = dict(action)
+    normalized["id"] = normalized.get("id") or normalized.get("action_id")
+    normalized["confidence"] = normalized.get("confidence", 85)
+    return normalized
+
+
 @router.get("/pending")
 async def get_pending_actions():
     """Get all pending actions awaiting approval."""
-    pending = [a for a in _actions_store if a["status"] == "pending"]
+    pending = [_normalize_action(a) for a in _actions_store if a["status"] == "pending"]
     return {
         "actions": pending,
         "count": len(pending),
@@ -77,7 +84,7 @@ async def get_pending_actions():
 async def get_all_actions():
     """Get all actions (pending, approved, dismissed)."""
     return {
-        "actions": _actions_store,
+        "actions": [_normalize_action(a) for a in _actions_store],
         "pending": len([a for a in _actions_store if a["status"] == "pending"]),
         "approved": len([a for a in _actions_store if a["status"] == "approved"]),
         "dismissed": len([a for a in _actions_store if a["status"] == "dismissed"]),
@@ -96,12 +103,9 @@ async def approve_action(action_id: str):
     action["status"] = "approved"
     action["approved_at"] = datetime.now(timezone.utc).isoformat()
 
-    return {
-        "status": "approved",
-        "action_id": action_id,
-        "message": f"Action '{action['title']}' approved successfully.",
-        "approved_at": action["approved_at"],
-    }
+    action["id"] = action.get("id") or action["action_id"]
+    action["confidence"] = action.get("confidence", 85)
+    return action
 
 
 @router.post("/{action_id}/dismiss")
@@ -117,9 +121,6 @@ async def dismiss_action(action_id: str, reason: str = ""):
     action["dismissed_at"] = datetime.now(timezone.utc).isoformat()
     action["dismiss_reason"] = reason
 
-    return {
-        "status": "dismissed",
-        "action_id": action_id,
-        "message": f"Action '{action['title']}' dismissed.",
-        "reason": reason,
-    }
+    action["id"] = action.get("id") or action["action_id"]
+    action["confidence"] = action.get("confidence", 85)
+    return action

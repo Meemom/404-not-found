@@ -5,17 +5,16 @@ import {
   AlertTriangle,
   Clock,
   MapPin,
-  ChevronRight,
   Zap,
 } from "lucide-react";
 import type { Disruption } from "@/lib/types";
-import Link from "next/link";
 
 interface ActiveAlertsProps {
   disruptions: Disruption[];
+  onOpenMemory?: () => void;
 }
 
-export function ActiveAlerts({ disruptions }: ActiveAlertsProps) {
+export function ActiveAlerts({ disruptions, onOpenMemory }: ActiveAlertsProps) {
   const active = disruptions.filter((d) => d.status === "active");
 
   return (
@@ -39,12 +38,14 @@ export function ActiveAlerts({ disruptions }: ActiveAlertsProps) {
             </span>
           )}
         </div>
-        <Link
-          href="/dashboard/memory"
-          className="text-[10px] text-warden-text-tertiary hover:text-warden-amber transition-colors flex items-center gap-1"
-        >
-          History <ChevronRight size={10} />
-        </Link>
+        {onOpenMemory && (
+          <button
+            onClick={onOpenMemory}
+            className="text-[10px] text-warden-text-tertiary hover:text-warden-amber transition-colors"
+          >
+            History
+          </button>
+        )}
       </div>
 
       {active.length === 0 ? (

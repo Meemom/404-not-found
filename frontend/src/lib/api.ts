@@ -9,10 +9,9 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   return res.json();
 }
 
-// ── Dashboard ──
-export const getDashboardOverview = () => fetchAPI<any>("/dashboard/overview");
-export const getGlobeData = () => fetchAPI<any>("/dashboard/globe-data");
-export const getCascadeData = () => fetchAPI<any>("/dashboard/cascade-data");
+// ── Insights ──
+export const getOperationsOverview = () => fetchAPI<any>("/insights/overview");
+export const getCascadeData = () => fetchAPI<any>("/insights/cascade-data");
 
 // ── Company ──
 export const getCompanyProfile = () => fetchAPI<any>("/company/profile");
@@ -20,15 +19,33 @@ export const updateCompanyProfile = (data: any) =>
   fetchAPI<any>("/company/profile", { method: "POST", body: JSON.stringify(data) });
 export const getCompanyMetrics = () => fetchAPI<any>("/company/metrics");
 
+function normalizeAction(action: any): any {
+  return {
+    ...action,
+    id: action.id || action.action_id,
+    action_id: action.action_id || action.id,
+    confidence: action.confidence ?? 85,
+  };
+}
+
 // ── Actions ──
-export const getPendingActions = () => fetchAPI<any>("/actions/pending");
-export const getAllActions = () => fetchAPI<any>("/actions/all");
+export const getPendingActions = async () => {
+  const data = await fetchAPI<any>("/actions/pending");
+  const actions = Array.isArray(data) ? data : (data.actions || []);
+  return actions.map(normalizeAction);
+};
+
+export const getAllActions = async () => {
+  const data = await fetchAPI<any>("/actions/all");
+  const actions = Array.isArray(data) ? data : (data.actions || []);
+  return actions.map(normalizeAction);
+};
 export const approveAction = (actionId: string) =>
-  fetchAPI<any>(`/actions/${actionId}/approve`, { method: "POST" });
+  fetchAPI<any>(`/actions/${actionId}/approve`, { method: "POST" }).then(normalizeAction);
 export const dismissAction = (actionId: string, reason?: string) =>
   fetchAPI<any>(`/actions/${actionId}/dismiss?reason=${encodeURIComponent(reason || "")}`, {
     method: "POST",
-  });
+  }).then(normalizeAction);
 
 // ── Agent ──
 export const triggerMonitor = () => fetchAPI<any>("/agent/monitor");
