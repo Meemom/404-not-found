@@ -94,7 +94,7 @@ export default function SlashTerminal({ onTabChange }: SlashTerminalProps) {
       appendLine("user", cmd);
 
       if (lower === "/help") {
-        appendLine("system", "Commands: /go [graph|globe|stockroom|operations|cascade|actions|memory], /actions list, /actions approve <id>, /actions dismiss <id> [reason], /monitor");
+        appendLine("system", "Commands: /go [graph|globe|stockroom], /actions list, /actions approve <id>, /actions dismiss <id> [reason], /monitor");
         return;
       }
 

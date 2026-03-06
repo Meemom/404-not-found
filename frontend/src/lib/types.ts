@@ -253,33 +253,6 @@ export interface GlobeData {
   risk_zones: RiskZone[];
 }
 
-// ── Cascade ──
-export interface CascadeNode {
-  id: string;
-  type: string;
-  label: string;
-  x?: number;
-  y?: number;
-  impact?: string;
-  detail?: string;
-  probability?: number | null;
-}
-
-export interface CascadeEdge {
-  source: string;
-  target: string;
-  label?: string;
-  severity?: string;
-  animated?: boolean;
-}
-
-export interface CascadeData {
-  scenario_name: string;
-  nodes: CascadeNode[];
-  edges: CascadeEdge[];
-  impact_summary?: Record<string, unknown>;
-}
-
 // ── Chat ──
 export interface ChatMessage {
   id?: string;
@@ -299,22 +272,3 @@ export interface SSEEvent {
   reasoning_trace?: string[];
 }
 
-// ── Memory ──
-export interface PatternInsight {
-  pattern: string;
-  title?: string;
-  description?: string;
-  frequency: string;
-  recommendation: string;
-  confidence?: number;
-  occurrences?: number;
-}
-
-export interface MemoryResponse {
-  disruptions: Disruption[];
-  historical: Disruption[];
-  active: Disruption[];
-  total_events: number;
-  total_financial_impact_eur: number;
-  patterns: PatternInsight[];
-}

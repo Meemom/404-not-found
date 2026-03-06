@@ -11,7 +11,6 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
 // ── Insights ──
 export const getOperationsOverview = () => fetchAPI<any>("/insights/overview");
-export const getCascadeData = () => fetchAPI<any>("/insights/cascade-data");
 
 // ── Company ──
 export const getCompanyProfile = () => fetchAPI<any>("/company/profile");
@@ -49,37 +48,6 @@ export const dismissAction = (actionId: string, reason?: string) =>
 
 // ── Agent ──
 export const triggerMonitor = () => fetchAPI<any>("/agent/monitor");
-
-// ── Memory ──
-export const getDisruptionHistory = async (): Promise<any> => {
-  const data = await fetchAPI<any>("/memory/disruptions");
-  // Normalize: merge active + historical into a single disruptions array
-  const active = (data.active || []).map((d: any) => ({
-    ...d,
-    id: d.disruption_id || d.id,
-    status: "active",
-    affected_suppliers: d.affected_supplier_ids,
-  }));
-  const historical = (data.historical || []).map((d: any) => ({
-    ...d,
-    id: d.disruption_id || d.id,
-    status: d.resolved_at ? "resolved" : "monitoring",
-    affected_suppliers: d.affected_supplier_ids,
-  }));
-  const patterns = (data.patterns || []).map((p: any) => ({
-    ...p,
-    title: p.pattern,
-    description: p.recommendation,
-    confidence: 85,
-    occurrences: parseInt(p.frequency) || 3,
-  }));
-  return {
-    ...data,
-    disruptions: [...active, ...historical],
-    patterns,
-  };
-};
-export const getDisruptionDetail = (id: string) => fetchAPI<any>(`/memory/disruptions/${id}`);
 
 // ── SSE Chat Stream ──
 export interface SSEEvent {
@@ -152,55 +120,6 @@ export async function streamChat(
           if (text && text !== "[DONE]") {
             onToken(text);
           }
-        }
-      }
-    }
-  }
-}
-
-export async function streamDemo(
-  onToken: (token: string) => void,
-  signal?: AbortSignal,
-  onEvent?: (event: SSEEvent) => void,
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/agent/demo`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal,
-  });
-
-  if (!res.ok) throw new Error(`Demo API error: ${res.status}`);
-  const reader = res.body?.getReader();
-  if (!reader) throw new Error("No response body");
-
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("data: ")) {
-        try {
-          const data: SSEEvent = JSON.parse(trimmed.slice(6));
-          if (onEvent) onEvent(data);
-          if (
-            (data.event === "token" || data.type === "response") &&
-            data.content
-          ) {
-            onToken(data.content);
-          } else if (data.event === "done" || data.type === "done") {
-            return;
-          }
-        } catch {
-          const text = trimmed.slice(6);
-          if (text && text !== "[DONE]") onToken(text);
         }
       }
     }
