@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BOMItem } from "@/lib/types";
 import { initScene, updateInventory, dispose, type StockSceneState } from "./StockScene";
+import WardenAvatar from "@/components/WardenAvatar";
 
 interface StockRoomProps {
   inventory: BOMItem[];
@@ -32,6 +33,23 @@ export default function StockRoom({ inventory }: StockRoomProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<StockSceneState | null>(null);
   const [selectedItem, setSelectedItem] = useState<BOMItem | null>(null);
+  const [showChat, setShowChat] = useState(false);
+
+  const stockSummary = useMemo(() => {
+    const total = inventory.length;
+    const critical = inventory.filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical").length;
+    const healthy = inventory.filter((i) => i.inventory.status === "healthy").length;
+    const totalValue = inventory.reduce((sum, i) => sum + i.inventory.inventory_value_eur, 0);
+
+    if (critical > 0) {
+      const names = inventory
+        .filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical")
+        .map((i) => i.name)
+        .join(", ");
+      return `Heads up! ${critical} of ${total} components need attention: ${names}. Total inventory value is \u20AC${totalValue.toLocaleString()}. ${healthy} items are healthy.`;
+    }
+    return `Looking good! All ${total} components are well-stocked. Total inventory value: \u20AC${totalValue.toLocaleString()}.`;
+  }, [inventory]);
 
   const onItemClick = useCallback((item: BOMItem) => {
     setSelectedItem(item);
@@ -72,6 +90,51 @@ export default function StockRoom({ inventory }: StockRoomProps) {
       className="relative w-full h-full"
       style={{ background: "var(--w-ob-bg)" }}
     >
+      {/* Warden avatar - bottom right corner */}
+      <div
+        className="absolute z-40"
+        style={{ bottom: 24, right: 24 }}
+      >
+        {showChat && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "100%",
+              right: 0,
+              marginBottom: 8,
+              background: "#fff",
+              borderRadius: 12,
+              padding: "12px 16px",
+              width: 280,
+              boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+              border: "1px solid #e2e8f0",
+              fontSize: 13,
+              color: "#334155",
+              lineHeight: 1.5,
+              animation: "chatBubbleIn 0.2s ease-out",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--w-blue, #3b82f6)", marginBottom: 4 }}>
+              Warden
+            </div>
+            {stockSummary}
+          </div>
+        )}
+        <button
+          onClick={() => setShowChat((v) => !v)}
+          style={{
+            cursor: "pointer",
+            background: "none",
+            border: "none",
+            padding: 0,
+            display: "block",
+          }}
+          title="Ask Warden about stock"
+        >
+          <WardenAvatar size={100} animation="jumping" />
+        </button>
+      </div>
+
       {/* Centered popup modal */}
       {selectedItem && (
         <div
@@ -239,6 +302,10 @@ export default function StockRoom({ inventory }: StockRoomProps) {
       <style>{`
         @keyframes popupIn {
           from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes chatBubbleIn {
+          from { opacity: 0; transform: scale(0.9) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
