@@ -245,6 +245,143 @@ interface SLAPenalty {
   penaltyPercent: string;
 }
 
+/* ── Transition screen shown after onboarding completes ── */
+function TransitionScreen({ companyName, onDone }: { companyName: string; onDone: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDone, 3500);
+    return () => clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+      {/* Animated gradient background */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 40%, #3b82f6 60%, #1e40af 100%)",
+        }}
+        animate={{
+          background: [
+            "linear-gradient(135deg, #1e3a5f 0%, #2563eb 40%, #3b82f6 60%, #1e40af 100%)",
+            "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #2563eb 60%, #1e3a5f 100%)",
+            "linear-gradient(135deg, #1e3a5f 0%, #2563eb 40%, #3b82f6 60%, #1e40af 100%)",
+          ],
+        }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Floating particles */}
+      {Array.from({ length: 30 }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-white/10"
+          style={{
+            width: 4 + Math.random() * 8,
+            height: 4 + Math.random() * 8,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -40 - Math.random() * 60, 0],
+            x: [0, (Math.random() - 0.5) * 40, 0],
+            opacity: [0, 0.6, 0],
+            scale: [0.5, 1.2, 0.5],
+          }}
+          transition={{
+            duration: 3 + Math.random() * 3,
+            delay: Math.random() * 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+
+      {/* Radial pulse rings */}
+      {[0, 0.8, 1.6].map((delay, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full border border-white/10"
+          style={{ width: 300, height: 300 }}
+          animate={{
+            scale: [0.5, 2.5],
+            opacity: [0.3, 0],
+          }}
+          transition={{
+            duration: 3,
+            delay,
+            repeat: Infinity,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <motion.p
+            className="text-blue-200 text-sm font-medium tracking-widest uppercase mb-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            Welcome to Warden
+          </motion.p>
+
+          <motion.h1
+            className="text-white text-5xl font-bold mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            {companyName || "Your Company"}
+          </motion.h1>
+
+          <motion.div
+            className="flex items-center justify-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.0 }}
+          >
+            <motion.div
+              className="w-2 h-2 rounded-full bg-blue-300"
+              animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.2, repeat: Infinity }}
+            />
+            <p className="text-blue-100 text-lg font-light tracking-wide">
+              Visualizing your supply chain
+            </p>
+            <motion.div
+              className="w-2 h-2 rounded-full bg-blue-300"
+              animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0.6 }}
+            />
+          </motion.div>
+        </motion.div>
+
+        {/* Loading bar */}
+        <motion.div
+          className="mt-10 mx-auto h-1 rounded-full overflow-hidden"
+          style={{ width: 200, background: "rgba(255,255,255,0.15)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
+          <motion.div
+            className="h-full rounded-full bg-white/60"
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ delay: 1.2, duration: 2.2, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -256,6 +393,7 @@ export default function OnboardingPage() {
   const [uploadedSLA, setUploadedSLA] = useState<any[] | null>(null);
   const [uploadedBOM, setUploadedBOM] = useState<any[] | null>(null);
   const [uploading, setUploading] = useState<string | null>(null); // "suppliers" | "sla" | "bom"
+  const [showTransition, setShowTransition] = useState(false);
 
   // Step data
   const [selectedIndustry, setSelectedIndustry] = useState("");
@@ -373,11 +511,11 @@ export default function OnboardingPage() {
       const profile = await getCompanyProfile();
       setCompany(profile);
       setOnboarded(true);
-      router.push("/");
+      setShowTransition(true);
     } catch (err) {
       console.error("Onboarding error:", err);
       setOnboarded(true);
-      router.push("/");
+      setShowTransition(true);
     } finally {
       setLoading(false);
     }
@@ -391,6 +529,10 @@ export default function OnboardingPage() {
   };
 
   const riskInfo = RISK_LABELS[riskAppetite];
+
+  if (showTransition) {
+    return <TransitionScreen companyName={companyName} onDone={() => router.push("/")} />;
+  }
 
   return (
     <div className="onboarding-page min-h-screen flex items-center justify-center p-6">
