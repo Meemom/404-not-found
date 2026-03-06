@@ -113,3 +113,68 @@ def search_alternative_suppliers(component_id: str) -> dict:
             for s in alternatives
         ],
     }
+
+
+def get_contract_terms(supplier_id: str) -> dict:
+    """Get contract terms and commercial details for a specific supplier.
+
+    Args:
+        supplier_id: The supplier ID to look up.
+
+    Returns:
+        Contract terms including type, force majeure, penalties, and backup arrangements.
+    """
+    sup_path = DATA_DIR / "mock_suppliers.json"
+    with open(sup_path, "r") as f:
+        suppliers = json.load(f)
+
+    supplier = next((s for s in suppliers if s["supplier_id"] == supplier_id), None)
+    if not supplier:
+        return {"error": f"Supplier {supplier_id} not found"}
+
+    # Simulated contract details based on supplier data
+    contract_details = {
+        "supplier_id": supplier_id,
+        "supplier_name": supplier["name"],
+        "contract_type": supplier["contract_type"],
+        "annual_spend_eur": supplier["annual_spend_eur"],
+        "force_majeure_clause": supplier["force_majeure_clause"],
+        "lead_time_days": supplier["lead_time_days"],
+        "components_covered": supplier["components_supplied"],
+        "backup_suppliers": supplier.get("backup_suppliers", []),
+    }
+
+    # Add contract-specific terms based on type
+    if supplier["contract_type"] == "multi-year":
+        contract_details.update({
+            "contract_duration_years": 3,
+            "price_escalation_cap_pct": 5,
+            "minimum_order_quantity": 10000,
+            "penalty_for_late_delivery_pct": 2,
+            "emergency_allocation_clause": True,
+            "emergency_allocation_capacity_pct": 40,
+            "emergency_lead_time_days": 5 if "de" in supplier_id else 14,
+            "notes": "Multi-year agreement with emergency allocation provisions.",
+        })
+    elif supplier["contract_type"] == "annual":
+        contract_details.update({
+            "contract_duration_years": 1,
+            "price_escalation_cap_pct": 8,
+            "minimum_order_quantity": 5000,
+            "penalty_for_late_delivery_pct": 1,
+            "emergency_allocation_clause": False,
+            "emergency_lead_time_days": supplier["lead_time_days"],
+            "notes": "Standard annual agreement. Renewal in Q4.",
+        })
+    else:
+        contract_details.update({
+            "contract_duration_years": 0,
+            "price_escalation_cap_pct": 0,
+            "minimum_order_quantity": 1000,
+            "penalty_for_late_delivery_pct": 0,
+            "emergency_allocation_clause": False,
+            "emergency_lead_time_days": supplier["lead_time_days"],
+            "notes": "Spot market pricing. No long-term commitment.",
+        })
+
+    return contract_details

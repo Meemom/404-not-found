@@ -41,17 +41,17 @@ export function SLACountdown({ orders }: SLACountdownProps) {
             const daysLeft = daysUntil(order.sla_deadline);
             const urgency =
               daysLeft <= 3
-                ? "coral"
+                ? "pink"
                 : daysLeft <= 7
                 ? "amber"
                 : "teal";
             const urgencyBg = {
-              coral: "bg-warden-coral/10 border-warden-coral/30",
+              pink: "bg-warden-pink/10 border-warden-pink/30",
               amber: "bg-warden-amber/10 border-warden-amber/30",
               teal: "bg-warden-teal/10 border-warden-teal/30",
             }[urgency];
             const urgencyText = {
-              coral: "text-warden-coral",
+              pink: "text-warden-pink",
               amber: "text-warden-amber",
               teal: "text-warden-teal",
             }[urgency];
@@ -85,7 +85,7 @@ export function SLACountdown({ orders }: SLACountdownProps) {
                     {daysLeft <= 3 && (
                       <AlertTriangle
                         size={10}
-                        className="text-warden-coral animate-pulse"
+                        className="text-warden-pink animate-pulse"
                       />
                     )}
                   </div>

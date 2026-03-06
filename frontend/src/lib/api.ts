@@ -65,11 +65,30 @@ export const getDisruptionHistory = async (): Promise<any> => {
 export const getDisruptionDetail = (id: string) => fetchAPI<any>(`/memory/disruptions/${id}`);
 
 // ── SSE Chat Stream ──
+export interface SSEEvent {
+  event: string;
+  content?: string;
+  agent?: string;
+  type?: string;
+  action_type?: string;
+  action_id?: string;
+  preview?: string;
+  risk_score?: number;
+  revenue_at_risk_eur?: number;
+  tool?: string;
+  from?: string;
+  to?: string;
+  task?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 export async function streamChat(
   message: string,
   sessionId: string,
   onToken: (token: string) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onEvent?: (event: SSEEvent) => void,
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/agent/chat`, {
     method: "POST",
@@ -97,18 +116,74 @@ export async function streamChat(
       const trimmed = line.trim();
       if (trimmed.startsWith("data: ")) {
         try {
-          const data = JSON.parse(trimmed.slice(6));
-          if (data.type === "response" && data.content) {
+          const data: SSEEvent = JSON.parse(trimmed.slice(6));
+
+          // Emit raw event for full lifecycle tracking
+          if (onEvent) onEvent(data);
+
+          // Token/response events → onToken callback
+          if (
+            (data.event === "token" || data.type === "response") &&
+            data.content
+          ) {
             onToken(data.content);
-          } else if (data.type === "done") {
+          } else if (data.event === "done" || data.type === "done") {
             return;
           }
         } catch {
-          // If it's plain text, treat as token
           const text = trimmed.slice(6);
           if (text && text !== "[DONE]") {
             onToken(text);
           }
+        }
+      }
+    }
+  }
+}
+
+export async function streamDemo(
+  onToken: (token: string) => void,
+  signal?: AbortSignal,
+  onEvent?: (event: SSEEvent) => void,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/agent/demo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+  });
+
+  if (!res.ok) throw new Error(`Demo API error: ${res.status}`);
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ")) {
+        try {
+          const data: SSEEvent = JSON.parse(trimmed.slice(6));
+          if (onEvent) onEvent(data);
+          if (
+            (data.event === "token" || data.type === "response") &&
+            data.content
+          ) {
+            onToken(data.content);
+          } else if (data.event === "done" || data.type === "done") {
+            return;
+          }
+        } catch {
+          const text = trimmed.slice(6);
+          if (text && text !== "[DONE]") onToken(text);
         }
       }
     }

@@ -5,7 +5,7 @@ import { EdgeProps, getBezierPath } from "reactflow";
 import { motion } from "framer-motion";
 
 const EDGE_COLORS: Record<string, string> = {
-  affects: "#ef4444",
+  affects: "#EC4899",
   supplies: "#3b82f6",
   required_for: "#14b8a6",
   belongs_to: "#10b981",

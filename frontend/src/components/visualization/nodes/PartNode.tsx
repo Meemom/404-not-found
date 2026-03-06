@@ -26,11 +26,11 @@ export function PartNode({ data, id }: PartNodeProps) {
       ? "#10b981"
       : stockRatio > 1
         ? "#f59e0b"
-        : "#ef4444";
+        : "#EC4899";
 
   const critBadge =
     data.criticality === "critical"
-      ? "bg-red-50 text-red-600 border-red-200"
+      ? "bg-pink-50 text-pink-600 border-pink-200"
       : data.criticality === "high"
         ? "bg-orange-50 text-orange-600 border-orange-200"
         : "bg-teal-50 text-teal-600 border-teal-200";

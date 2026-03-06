@@ -14,7 +14,7 @@ export function RiskGauge({ score, label }: RiskGaugeProps) {
 
   const color =
     score > 60
-      ? "var(--color-warden-coral)"
+      ? "var(--color-warden-pink)"
       : score > 30
       ? "var(--color-warden-amber)"
       : "var(--color-warden-teal)";

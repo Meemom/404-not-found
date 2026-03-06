@@ -23,18 +23,18 @@ export function ActiveAlerts({ disruptions }: ActiveAlertsProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.4 }}
-      className="warden-card border border-warden-coral/20 p-5"
+      className="warden-card border border-warden-pink/20 p-5"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-warden-coral/10">
-            <Zap size={14} className="text-warden-coral" />
+          <div className="p-1 rounded bg-warden-pink/10">
+            <Zap size={14} className="text-warden-pink" />
           </div>
           <h3 className="text-sm font-semibold text-warden-text-primary">
             Active Disruptions
           </h3>
           {active.length > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-warden-coral text-white rounded-full">
+            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-warden-pink text-white rounded-full">
               {active.length}
             </span>
           )}
@@ -64,14 +64,14 @@ export function ActiveAlerts({ disruptions }: ActiveAlertsProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="p-3 rounded-lg bg-warden-bg-elevated border border-warden-border hover:border-warden-coral/30 transition-colors group cursor-pointer"
+              className="p-3 rounded-lg bg-warden-bg-elevated border border-warden-border hover:border-warden-pink/30 transition-colors group cursor-pointer"
             >
               <div className="flex items-start justify-between mb-2">
-                <h4 className="text-xs font-semibold text-warden-text-primary group-hover:text-warden-coral transition-colors leading-tight">
+                <h4 className="text-xs font-semibold text-warden-text-primary group-hover:text-warden-pink transition-colors leading-tight">
                   {disruption.title}
                 </h4>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <span className="font-data text-lg font-bold text-warden-coral">
+                  <span className="font-data text-lg font-bold text-warden-pink">
                     {disruption.severity}
                   </span>
                   <span className="text-[9px] text-warden-text-tertiary">/10</span>

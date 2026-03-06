@@ -91,23 +91,23 @@ export function VisualizationSidebar({
   const getHealthColor = (health: number) => {
     if (health > 70) return "text-green-600";
     if (health > 40) return "text-amber-600";
-    return "text-red-600";
+    return "text-pink-600";
   };
 
   const getHealthBarColor = (health: number) => {
     if (health > 70) return "bg-green-500";
     if (health > 40) return "bg-amber-500";
-    return "bg-red-500";
+    return "bg-pink-500";
   };
 
   const getCriticalityColor = (c: string) => {
-    if (c === "critical") return "text-red-600 bg-red-50";
+    if (c === "critical") return "text-pink-600 bg-pink-50";
     if (c === "high") return "text-orange-600 bg-orange-50";
     return "text-yellow-600 bg-yellow-50";
   };
 
   const getStatusColor = (s: string) => {
-    if (s === "at_risk") return "text-red-600";
+    if (s === "at_risk") return "text-pink-600";
     if (s === "delayed") return "text-orange-500";
     return "text-green-600";
   };
@@ -195,12 +195,12 @@ export function VisualizationSidebar({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+                  <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <TrendingDown size={12} className="text-red-500" />
+                      <TrendingDown size={12} className="text-pink-500" />
                       <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>Revenue at Risk</p>
                     </div>
-                    <p className="text-lg font-bold text-red-600">
+                    <p className="text-lg font-bold text-pink-600">
                       {formatRevenue(totalRevenueAtRisk)}
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export function VisualizationSidebar({
 
                 {/* Events Section */}
                 <SectionHeader
-                  icon={<Zap size={16} className="text-red-500" />}
+                  icon={<Zap size={16} className="text-pink-500" />}
                   label="Events"
                   count={events.length}
                   isOpen={expandedSection === "events"}
@@ -233,11 +233,11 @@ export function VisualizationSidebar({
                         <button
                           key={evt.id}
                           onClick={() => onNodeClick?.(evt.id)}
-                          className="w-full text-left px-3 py-2.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+                          className="w-full text-left px-3 py-2.5 rounded-lg border border-pink-200 bg-pink-50 hover:bg-pink-100 transition-colors"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium" style={{ color: "var(--w-ob-text)" }}>{evt.region}</span>
-                            <span className="text-xs font-bold text-red-600">
+                            <span className="text-xs font-bold text-pink-600">
                               {evt.severity}/10
                             </span>
                           </div>
@@ -258,7 +258,7 @@ export function VisualizationSidebar({
                   label="Suppliers"
                   count={suppliers.length}
                   badge={criticalSuppliers.length > 0 ? `${criticalSuppliers.length} critical` : undefined}
-                  badgeColor="text-red-600"
+                  badgeColor="text-pink-600"
                   isOpen={expandedSection === "suppliers"}
                   onToggle={() => toggleSection("suppliers")}
                 />
@@ -328,14 +328,14 @@ export function VisualizationSidebar({
                             className={cn(
                               "w-full text-left px-3 py-2.5 rounded-lg border transition-colors",
                               isLow
-                                ? "border-red-200 bg-red-50 hover:bg-red-100"
+                                ? "border-pink-200 bg-pink-50 hover:bg-pink-100"
                                 : "hover:bg-slate-50"
                             )}
                             style={!isLow ? { borderColor: "var(--w-ob-border)" } : undefined}
                           >
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium font-mono" style={{ color: "var(--w-ob-text)" }}>{part.name}</span>
-                              <span className={cn("text-xs font-bold", isLow ? "text-red-600" : "text-green-600")}>
+                              <span className={cn("text-xs font-bold", isLow ? "text-pink-600" : "text-green-600")}>
                                 {part.inventory_days}d stock
                               </span>
                             </div>
@@ -358,7 +358,7 @@ export function VisualizationSidebar({
                   label="Orders"
                   count={orders.length}
                   badge={atRiskOrders.length > 0 ? `${atRiskOrders.length} at risk` : undefined}
-                  badgeColor="text-red-600"
+                  badgeColor="text-pink-600"
                   isOpen={expandedSection === "orders"}
                   onToggle={() => toggleSection("orders")}
                 />
@@ -379,7 +379,7 @@ export function VisualizationSidebar({
                             className={cn(
                               "w-full text-left px-3 py-2.5 rounded-lg border transition-colors",
                               isRisk
-                                ? "border-red-200 bg-red-50 hover:bg-red-100"
+                                ? "border-pink-200 bg-pink-50 hover:bg-pink-100"
                                 : "hover:bg-slate-50"
                             )}
                             style={!isRisk ? { borderColor: "var(--w-ob-border)" } : undefined}

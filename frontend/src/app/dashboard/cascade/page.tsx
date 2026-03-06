@@ -27,7 +27,7 @@ import type { CascadeData, CascadeNode } from "@/lib/types";
 /* ---------- Custom node component ---------- */
 function CascadeNodeComponent({ data }: { data: any }) {
   const iconMap: Record<string, React.ReactNode> = {
-    disruption: <AlertTriangle size={16} className="text-warden-coral" />,
+    disruption: <AlertTriangle size={16} className="text-warden-pink" />,
     supplier: <Factory size={16} />,
     logistics: <Truck size={16} />,
     inventory: <Package size={16} />,
@@ -37,7 +37,7 @@ function CascadeNodeComponent({ data }: { data: any }) {
 
   const borderColor =
     data.impact === "critical"
-      ? "border-warden-coral/60"
+      ? "border-warden-pink/60"
       : data.impact === "high"
       ? "border-warden-amber/60"
       : data.impact === "medium"
@@ -46,7 +46,7 @@ function CascadeNodeComponent({ data }: { data: any }) {
 
   const bgColor =
     data.impact === "critical"
-      ? "bg-warden-coral/5"
+      ? "bg-warden-pink/5"
       : data.impact === "high"
       ? "bg-warden-amber/5"
       : "bg-warden-bg-elevated";
@@ -79,7 +79,7 @@ function CascadeNodeComponent({ data }: { data: any }) {
             <div
               className={`h-full rounded-full ${
                 data.probability > 70
-                  ? "bg-warden-coral"
+                  ? "bg-warden-pink"
                   : data.probability > 40
                   ? "bg-warden-amber"
                   : "bg-warden-teal"
@@ -186,7 +186,7 @@ export default function CascadePage() {
         <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-warden-bg-elevated/80 backdrop-blur-sm border border-warden-border">
           <span className="text-[10px] text-warden-text-tertiary">Impact:</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-warden-coral" />
+            <div className="w-2 h-2 rounded-full bg-warden-pink" />
             <span className="text-[10px] text-warden-text-tertiary">Critical</span>
           </div>
           <div className="flex items-center gap-1.5">

@@ -41,7 +41,7 @@ export function InventoryWatch({ items }: InventoryWatchProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   {isCritical && (
-                    <AlertTriangle size={10} className="text-warden-coral" />
+                    <AlertTriangle size={10} className="text-warden-pink" />
                   )}
                   <span className="text-xs text-warden-text-primary font-medium">
                     {item.name}
@@ -59,7 +59,7 @@ export function InventoryWatch({ items }: InventoryWatchProps) {
               <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                 <motion.div
                   className={`h-full rounded-full ${
-                    isCritical ? "bg-warden-coral" : "bg-warden-teal"
+                    isCritical ? "bg-warden-pink" : "bg-warden-teal"
                   }`}
                   initial={{ width: 0 }}
                   animate={{ width: `${ratio * 100}%` }}

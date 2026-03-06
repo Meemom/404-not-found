@@ -4,9 +4,9 @@ export function PartExpandedView({ nodeId }: { nodeId: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg p-4 border border-red-200 bg-red-50">
+        <div className="rounded-lg p-4 border border-pink-200 bg-pink-50">
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Inventory</p>
-          <p className="text-2xl font-bold text-red-600">8 days</p>
+          <p className="text-2xl font-bold text-pink-600">8 days</p>
         </div>
         <div className="rounded-lg p-4 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
           <p className="text-xs mb-1" style={{ color: "var(--w-ob-text-muted)" }}>Lead Time</p>
@@ -21,10 +21,10 @@ export function PartExpandedView({ nodeId }: { nodeId: string }) {
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--w-ob-text)" }}>Supply Sources</h3>
         <div className="space-y-2">
-          <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+          <div className="rounded-lg p-3 border border-pink-200 bg-pink-50">
             <div className="flex items-center justify-between">
               <p className="text-sm" style={{ color: "var(--w-ob-text)" }}>TSMC &mdash; Primary</p>
-              <span className="text-xs font-bold text-red-600">Disrupted</span>
+              <span className="text-xs font-bold text-pink-600">Disrupted</span>
             </div>
             <p className="text-xs mt-1" style={{ color: "var(--w-ob-text-muted)" }}>70% of supply &mdash; currently delayed 14-21 days</p>
           </div>
@@ -44,7 +44,7 @@ export function PartExpandedView({ nodeId }: { nodeId: string }) {
           <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>
             <div className="flex items-center justify-between">
               <p className="text-sm" style={{ color: "var(--w-ob-text)" }}>BMW #DE-8821</p>
-              <span className="text-xs font-bold text-red-600">At Risk</span>
+              <span className="text-xs font-bold text-pink-600">At Risk</span>
             </div>
           </div>
           <div className="rounded-lg p-3 border" style={{ borderColor: "var(--w-ob-border)", background: "var(--w-ob-bg-tint)" }}>

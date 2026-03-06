@@ -11,6 +11,8 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
+import GlobeExperience from "@/components/globe/GlobeExperience";
+
 import {
   EventNode,
   SupplierNode,
@@ -441,7 +443,7 @@ export default function Home() {
           {activeTab === "graph" && (
             <div className="flex items-center gap-4 text-[10px]">
               {[
-                { color: "#ef4444", label: "Affects" },
+                { color: "#EC4899", label: "Affects" },
                 { color: "#3b82f6", label: "Supplies" },
                 { color: "#14b8a6", label: "Required for" },
                 { color: "#10b981", label: "Belongs to" },
@@ -505,22 +507,7 @@ export default function Home() {
         )}
 
         {activeTab === "globe" && (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                  <path d="M2 12h20" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Globe View</h2>
-              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
-                Interactive 3D globe showing supplier locations, shipping routes, and disruption zones worldwide.
-              </p>
-              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
-            </div>
-          </div>
+          <GlobeExperience />
         )}
 
         {activeTab === "stockroom" && (

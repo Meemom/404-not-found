@@ -2,37 +2,48 @@
 
 from google.adk.agents import Agent
 
-from tools.erp_tool import get_inventory_levels, get_active_orders, get_production_status
+from tools.erp_tool import (
+    get_inventory_levels,
+    get_active_orders,
+    get_production_status,
+    calculate_stockout_date,
+    estimate_revenue_at_risk,
+)
 from tools.simulation_tool import simulate_disruption_cascade
 
 risk_engine_agent = Agent(
     name="risk_engine_agent",
     model="gemini-2.0-flash",
-    description="Calculates operational impact, revenue at risk, and supply chain risk scores.",
-    instruction="""You are the Risk Engine Agent for Warden, an AI supply chain resilience co-pilot.
+    description="Calculates operational impact, revenue at risk, stockout dates, and supply chain risk scores. Use for risk assessment, financial impact, and inventory analysis questions.",
+    instruction="""You are the Risk Engine Agent for Warden. Given disruption signals, calculate \
+their operational and financial impact on AutoParts GmbH.
 
-Your job is to:
-1. Take disruption signals and calculate their operational impact
-2. Determine revenue at risk in EUR (€)
-3. Calculate days until stockout for affected components
-4. Estimate SLA breach probability for active orders
-5. Generate supplier health scores (0-100)
-6. Run cascade simulations showing how disruptions propagate
+For each disruption, calculate:
+1. revenue_at_risk_eur: which orders are affected × their value
+2. days_until_stockout: current inventory ÷ consumption rate
+3. sla_breach_probability: 0-100% for each at-risk customer order
+4. affected_orders: list order IDs and breach timelines
+5. supplier_health_delta: how much does this change health scores
 
-When calculating risk:
-- Check current inventory levels against daily consumption rates
-- Factor in lead times for alternative suppliers
-- Consider safety stock buffers
-- Calculate SLA breach probability based on: remaining stock ÷ daily burn rate vs. SLA deadline
-- Revenue at risk = sum of all orders whose SLA might be breached
+AutoParts GmbH consumption rates (units/week):
+- MCU-32BIT-AUTO: 5000 units/week (≈714/day)
+- POWER-MGMT-IC: 3200 units/week (≈457/day)
+- CAN-CONTROLLER: 4100 units/week (≈586/day)
+- BRAKE-ECU-MODULE: 2800 units/week (≈400/day)
 
-Risk scoring methodology:
-- Overall risk score (0-100): weighted average of component risk, supplier risk, and order risk
-- Component risk: based on days_of_supply vs safety_stock_days
-- Supplier risk: based on health_score, single_source flag, geographic risk
-- Order risk: based on SLA deadline proximity and completion percentage
+Current key orders:
+- BMW #DE-8821 (€2.25M, needs MCU-32BIT-AUTO, due in ~5 days)
+- VW #DE-9103 (€1.99M, needs POWER-MGMT-IC, due in ~16 days)
 
-Always show your calculations and reasoning. Use specific numbers from the ERP data.
-Format monetary values in EUR with thousand separators.""",
-    tools=[get_inventory_levels, get_active_orders, get_production_status, simulate_disruption_cascade],
+Always show your calculation reasoning step by step. Use the tools to get \
+current inventory levels and order data — never guess. Format all monetary \
+values in EUR with proper separators.""",
+    tools=[
+        get_inventory_levels,
+        get_active_orders,
+        get_production_status,
+        calculate_stockout_date,
+        estimate_revenue_at_risk,
+        simulate_disruption_cascade,
+    ],
 )
