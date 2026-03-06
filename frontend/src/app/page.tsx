@@ -29,6 +29,8 @@ import {
 } from "@/components/visualization/overlays";
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
+import StockRoom from "@/components/stockroom/StockRoom";
+import type { InventoryItem } from "@/lib/types";
 
 const nodeTypes = {
   event: EventNode,
@@ -41,6 +43,111 @@ const nodeTypes = {
 const edgeTypes = {
   animated: AnimatedEdge,
 };
+
+const MOCK_INVENTORY: InventoryItem[] = [
+  {
+    component_id: "MCU-32BIT-AUTO",
+    name: "32-bit Automotive Microcontroller",
+    category: "Semiconductors",
+    current_stock_units: 18000,
+    daily_consumption_units: 1500,
+    days_of_supply: 12,
+    safety_stock_units: 31500,
+    reorder_point_units: 21000,
+    status: "below_reorder",
+    unit_cost_eur: 8.5,
+    primary_supplier: "sup-tsmc-001",
+    backup_supplier: "sup-infineon-de-001",
+    warehouse_location: "Frankfurt Main Warehouse",
+    last_replenishment: "2026-02-15",
+    next_expected_delivery: "2026-03-18",
+  },
+  {
+    component_id: "POWER-MGMT-IC",
+    name: "Power Management IC (Automotive Grade)",
+    category: "Semiconductors",
+    current_stock_units: 22000,
+    daily_consumption_units: 1200,
+    days_of_supply: 18,
+    safety_stock_units: 25200,
+    reorder_point_units: 16800,
+    status: "adequate",
+    unit_cost_eur: 5.2,
+    primary_supplier: "sup-tsmc-001",
+    backup_supplier: "sup-stmicro-001",
+    warehouse_location: "Frankfurt Main Warehouse",
+    last_replenishment: "2026-02-20",
+    next_expected_delivery: "2026-03-14",
+  },
+  {
+    component_id: "CAN-CONTROLLER",
+    name: "CAN Bus Controller Chip",
+    category: "Semiconductors",
+    current_stock_units: 35000,
+    daily_consumption_units: 800,
+    days_of_supply: 43,
+    safety_stock_units: 16800,
+    reorder_point_units: 11200,
+    status: "healthy",
+    unit_cost_eur: 3.8,
+    primary_supplier: "sup-infineon-my-001",
+    backup_supplier: "sup-infineon-de-001",
+    warehouse_location: "Frankfurt Main Warehouse",
+    last_replenishment: "2026-02-25",
+    next_expected_delivery: "2026-03-10",
+  },
+  {
+    component_id: "GATE-DRIVER-IC",
+    name: "Gate Driver IC (High-Side)",
+    category: "Semiconductors",
+    current_stock_units: 15000,
+    daily_consumption_units: 600,
+    days_of_supply: 25,
+    safety_stock_units: 12600,
+    reorder_point_units: 8400,
+    status: "healthy",
+    unit_cost_eur: 2.9,
+    primary_supplier: "sup-infineon-my-001",
+    backup_supplier: "sup-infineon-de-001",
+    warehouse_location: "Frankfurt Secondary",
+    last_replenishment: "2026-02-22",
+    next_expected_delivery: "2026-03-15",
+  },
+  {
+    component_id: "BATT-CELL-48V",
+    name: "48V Battery Cell Module",
+    category: "Battery Components",
+    current_stock_units: 4200,
+    daily_consumption_units: 150,
+    days_of_supply: 28,
+    safety_stock_units: 3150,
+    reorder_point_units: 2100,
+    status: "healthy",
+    unit_cost_eur: 45.0,
+    primary_supplier: "sup-samsung-001",
+    backup_supplier: "sup-lg-001",
+    warehouse_location: "Frankfurt Main Warehouse",
+    last_replenishment: "2026-02-18",
+    next_expected_delivery: "2026-03-20",
+  },
+  {
+    component_id: "SENSOR-IC-MEMS",
+    name: "MEMS Sensor IC (Automotive)",
+    category: "Sensors",
+    current_stock_units: 28000,
+    daily_consumption_units: 700,
+    days_of_supply: 40,
+    safety_stock_units: 14700,
+    reorder_point_units: 9800,
+    status: "healthy",
+    unit_cost_eur: 4.1,
+    primary_supplier: "sup-stmicro-001",
+    backup_supplier: null,
+    warehouse_location: "Frankfurt Main Warehouse",
+    last_replenishment: "2026-02-28",
+    next_expected_delivery: "2026-03-12",
+  },
+];
 
 // Column X positions for the left-to-right flow
 const COL = { event: 0, supplier: 280, part: 560, order: 840, customer: 1120 };
@@ -417,23 +524,7 @@ export default function Home() {
         )}
 
         {activeTab === "stockroom" && (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z" />
-                  <path d="M6 18h12" />
-                  <path d="M6 14h12" />
-                  <path d="M6 10h12" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Stockroom</h2>
-              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
-                Virtual warehouse visualization with real-time inventory levels, shelf layouts, and stock alerts.
-              </p>
-              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
-            </div>
-          </div>
+          <StockRoom inventory={MOCK_INVENTORY} />
         )}
       </div>
 

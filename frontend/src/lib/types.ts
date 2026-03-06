@@ -110,6 +110,9 @@ export interface InventoryItem {
   unit_cost_eur: number;
   primary_supplier: string;
   backup_supplier: string | null;
+  warehouse_location: string;
+  last_replenishment: string;
+  next_expected_delivery: string;
 }
 
 // ── Risk & Disruption ──
