@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════ */
 :root {
   /* ── Dark theme (dashboard) ── */
-  --w-bg-primary: #0A0F1E;
+  --w-bg-primary: #fdfdff;
   --w-bg-secondary: #0F172A;
   --w-bg-card: #141B2D;
   --w-bg-elevated: #1E2A45;

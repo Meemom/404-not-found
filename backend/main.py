@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 load_dotenv()
 
-app = FastAPI(-
+app = FastAPI(
     title="Warden API",
     description="Autonomous Supply Chain Resilience Co-Pilot",
     version="1.0.0",
