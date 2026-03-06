@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -31,6 +31,9 @@ import {
 } from "@/components/visualization/overlays";
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
+import SlashTerminal from "@/components/copilot/SlashTerminal";
+import { useWardenStore } from "@/lib/store";
+import { getCompanyProfile, getOperationsOverview, getPendingActions } from "@/lib/api";
 
 const nodeTypes = {
   event: EventNode,
@@ -56,6 +59,41 @@ export default function Home() {
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<ViewTab>("graph");
+  const { setCompany, setDashboard, setPendingActions } = useWardenStore();
+
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        const [company, overview, actions] = await Promise.all([
+          getCompanyProfile(),
+          getOperationsOverview(),
+          getPendingActions(),
+        ]);
+        setCompany(company);
+        setDashboard(overview);
+        setPendingActions(actions);
+      } catch (err) {
+        console.error("Failed to load root data:", err);
+      }
+    }
+
+    loadInitialData();
+
+    const interval = setInterval(async () => {
+      try {
+        const [overview, actions] = await Promise.all([
+          getOperationsOverview(),
+          getPendingActions(),
+        ]);
+        setDashboard(overview);
+        setPendingActions(actions);
+      } catch (err) {
+        console.error("Failed to poll root data:", err);
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [setCompany, setDashboard, setPendingActions]);
 
   const openOverlay = (id: string, type: string, label: string) => {
     setSelectedNode({ id, type, label });
@@ -421,8 +459,7 @@ export default function Home() {
               <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
             </div>
           </div>
-        )}
-      </div>
+        )}      </div>
 
       {/* Sidebar (graph view only) */}
       {activeTab === "graph" && <VisualizationSidebar
@@ -468,9 +505,11 @@ export default function Home() {
       {/* Footer */}
       <div className="border-t px-6 py-2.5 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
         <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
-          Click any node to expand. Edge colors indicate relationship type. Particle flow shows data direction.
+          Click any node to expand. Press &quot;/&quot; to open the Warden terminal.
         </p>
       </div>
+
+      <SlashTerminal onTabChange={setActiveTab} />
     </div>
   );
 }

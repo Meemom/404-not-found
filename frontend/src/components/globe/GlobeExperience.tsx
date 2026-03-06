@@ -143,7 +143,7 @@ export default function GlobeExperience() {
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== toastId));
-    }, 8000);
+    }, 1500);
   };
 
   const filters: { value: FilterType; label: string }[] = [
