@@ -2,82 +2,55 @@
 
 ## Project Overview
 
-Warden is an AI-powered supply chain risk management platform built for a hackathon (team: 404-not-found). It monitors disruptions, calculates risk, suggests mitigations, and drafts actions (emails, POs, escalations). 
+Warden is an AI-powered supply chain risk management platform (hackathon project, team: 404-not-found). It monitors disruptions, calculates risk, suggests mitigations, and drafts actions for a fictional company, AutoParts GmbH. Monorepo with `frontend/` (Next.js) and `backend/` (FastAPI).
 
-## Tech Stack
+## Commands
 
-- **Frontend:** Next.js 16 + React 19, TypeScript, Tailwind CSS 4, Radix UI, Zustand, React Flow, react-globe.gl, Recharts, Framer Motion
-- **Backend:** Python FastAPI, Google ADK (Agent Development Kit) with Gemini 2.0 Flash, SSE streaming via sse-starlette
-- **State:** In-memory (no database)
-
-## Project Structure
-
-```
-backend/
-  main.py              # FastAPI app entry point (uvicorn, CORS, route registration)
-  agents/              # Google ADK agents
-    orchestrator.py    # Root agent that routes to sub-agents
-    perception_agent.py
-    risk_engine_agent.py
-    planning_agent.py
-    action_agent.py
-  routes/
-    agent.py           # SSE chat endpoint + demo fallback responses
-    dashboard.py
-    actions.py
-    company.py
-    memory.py
-  tools/               # ADK tools (news, email, ERP, simulation, supplier)
-  models/              # Pydantic models (action, company, risk, supplier)
-  data/                # Static data files
-
-frontend/
-  src/
-    app/               # Next.js App Router pages
-      dashboard/       # Main dashboard with sub-pages: copilot, actions, cascade, globe, memory
-      onboarding/
-    components/
-      copilot/         # Chat UI (ChatBubble, ChatInput, ThinkingIndicator)
-      dashboard/       # Dashboard widgets (RiskGauge, SLACountdown, etc.)
-      layout/          # Sidebar, TopBar, CompanyAvatar
-    lib/
-      api.ts           # Backend API client
-      store.ts         # Zustand store
-      types.ts         # TypeScript types
-      utils.ts         # Utility functions (cn helper, etc.)
-```
-
-## Running the Project
-
-### Backend
+### Frontend (from `frontend/`)
 ```bash
-cd backend
+npm run dev      # Dev server on http://localhost:3000 (Turbopack)
+npm run build    # Production build
+npm run lint     # ESLint (eslint v9, flat config)
+```
+
+### Backend (from `backend/`)
+```bash
 pip install -r requirements.txt
-python main.py
-# Runs on http://localhost:8000
+python main.py   # Uvicorn dev server on http://localhost:8000 (auto-reload)
 ```
 
-Requires a `.env` file with Google AI API key for ADK/Gemini. Falls back to demo mode if agent fails.
+Requires `.env` with `GOOGLE_API_KEY` for ADK/Gemini. Falls back to demo mode if agent fails.
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# Runs on http://localhost:3000
-```
+## Architecture
 
-## Key Architecture Decisions
+### Backend — Google ADK Agent System
+- **Orchestrator** (`agents/orchestrator.py`): Root agent using Gemini 2.5 Flash, routes to 4 sub-agents by intent:
+  - `perception_agent` — news/disruptions/signals
+  - `risk_engine_agent` — risk scores/revenue impact/inventory
+  - `planning_agent` — strategy/simulation/mitigation
+  - `action_agent` — drafting emails/POs/escalations
+- **Routes**: `agent.py` (SSE chat + demo fallback), `dashboard.py`, `actions.py`, `company.py`, `upload.py`
+- **Tools** (`tools/`): ADK tools for news, email, ERP, simulation, supplier lookup, MCP integration
+- **State**: In-memory, no database (Supabase client exists in requirements but not primary)
 
-- The agent chat endpoint (`/agent/chat`) streams responses via SSE with event types: `thinking`, `response`, `action_generated`, `done`
-- If the real Google ADK agent throws an error, it falls back to hardcoded demo responses in `routes/agent.py`
-- The orchestrator agent routes to 4 sub-agents based on intent: perception, risk engine, planning, action
-- All actions (emails, POs, escalations) go to a pending queue for human approval
-- Frontend uses Zustand for state management
+### Frontend — Next.js 16 + React 19
+- **App Router** with `"use client"` directives on interactive components
+- **Path alias**: `@/` maps to `frontend/src/`
+- **State**: Zustand store (`lib/store.ts`) — single `useWardenStore` with company, dashboard, actions, chat, disruptions
+- **API client** (`lib/api.ts`): REST + SSE streaming for chat. SSE events: `thinking`, `token`/`response`, `action_generated`, `done`
+- **Styling**: Tailwind CSS 4 with CSS custom properties (`--w-ob-*` theme tokens, `--w-blue` accent)
+
+### Key Frontend Patterns
+- **3D Visualizations**: Pure Three.js via `useRef`/`useEffect` (not R3F declarative). Factory functions in `.ts` files, thin React wrappers for lifecycle.
+  - `SupplyGlobe` — globe with supply chain routes
+  - `StockRoom` — 3D warehouse using CSS2DRenderer for HTML overlays on WebGL
+- **ReactFlow graph** (`components/visualization/`): Custom nodes (Supplier, Part, Order, Customer, Event) with expanded overlay views
+- **Navigation**: `NavigationBar` with `ViewTab` type controls tab switching (`"graph" | "globe" | "stockroom"`)
+
+### SSE Chat Flow
+Frontend `streamChat()` → POST `/agent/chat` → Backend streams SSE events → Frontend parses `data:` lines, dispatches to `onToken`/`onEvent` callbacks, updates Zustand store via `updateLastAssistantMessage`.
 
 ## Environment Variables
-
-- `CORS_ORIGINS` - Comma-separated allowed origins (default: `http://localhost:3000`)
-- `BACKEND_HOST` - Backend host (default: `0.0.0.0`)
-- `BACKEND_PORT` - Backend port (default: `8000`)
-- Google ADK requires `GOOGLE_API_KEY` or equivalent auth
+- `CORS_ORIGINS` — Comma-separated allowed origins (default: `http://localhost:3000`)
+- `BACKEND_HOST` / `BACKEND_PORT` — Backend bind address (default: `0.0.0.0:8000`)
+- `GOOGLE_API_KEY` — Required for ADK/Gemini agents
