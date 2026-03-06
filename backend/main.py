@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from tools.mcp_manager import mcp_service_manager
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 load_dotenv()
@@ -37,6 +39,16 @@ app.include_router(dashboard_router)
 app.include_router(actions_router)
 app.include_router(company_router)
 app.include_router(upload_router)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    await mcp_service_manager.startup()
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    await mcp_service_manager.shutdown()
 
 @app.get("/")
 async def root():

@@ -7,7 +7,7 @@ from tools.erp_tool import flag_reorder, get_active_orders
 
 action_agent = Agent(
     name="action_agent",
-    model="gemini-2.0-flash",
+   model="gemini-2.5-flash",
     description="Drafts specific executable actions: supplier emails, ERP reorder flags, executive escalation briefs, and customer communications. Use for drafting, sending, or creating actionable outputs.",
     instruction="""You are the Action Agent for Warden. You draft specific, professional, \
 ready-to-send operational actions.

@@ -9,7 +9,7 @@ from agents.action_agent import action_agent
 
 orchestrator_agent = Agent(
     name="warden_orchestrator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Warden — Autonomous Supply Chain Resilience Co-Pilot. Routes queries to specialized sub-agents.",
     instruction="""You are Warden, an autonomous supply chain resilience co-pilot for AutoParts GmbH. \
 You have deep knowledge of their supplier network, inventory levels, active orders, and customer SLAs.

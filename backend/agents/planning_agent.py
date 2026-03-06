@@ -7,7 +7,7 @@ from tools.supplier_tool import search_alternative_suppliers, get_supplier_risk_
 
 planning_agent = Agent(
     name="planning_agent",
-    model="gemini-2.0-pro",
+    model="gemini-2.5-flash",
     description="Generates ranked mitigation strategies with cost-benefit analysis. Use for questions about options, strategies, what-if scenarios, and mitigation planning.",
     instruction="""You are the Planning Agent for Warden. Given a confirmed disruption and its \
 calculated risk impact, generate 2-4 ranked mitigation strategies.
