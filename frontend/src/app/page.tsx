@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -31,6 +31,9 @@ import {
 } from "@/components/visualization/overlays";
 import { VisualizationSidebar } from "@/components/visualization/VisualizationSidebar";
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
+import SlashTerminal from "@/components/copilot/SlashTerminal";
+import { useWardenStore } from "@/lib/store";
+import { getCompanyProfile, getOperationsOverview, getPendingActions } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
 import type { BOMItem } from "@/lib/types";
 
@@ -183,6 +186,41 @@ export default function Home() {
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<ViewTab>("graph");
+  const { setCompany, setDashboard, setPendingActions } = useWardenStore();
+
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        const [company, overview, actions] = await Promise.all([
+          getCompanyProfile(),
+          getOperationsOverview(),
+          getPendingActions(),
+        ]);
+        setCompany(company);
+        setDashboard(overview);
+        setPendingActions(actions);
+      } catch (err) {
+        console.error("Failed to load root data:", err);
+      }
+    }
+
+    loadInitialData();
+
+    const interval = setInterval(async () => {
+      try {
+        const [overview, actions] = await Promise.all([
+          getOperationsOverview(),
+          getPendingActions(),
+        ]);
+        setDashboard(overview);
+        setPendingActions(actions);
+      } catch (err) {
+        console.error("Failed to poll root data:", err);
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [setCompany, setDashboard, setPendingActions]);
 
   const openOverlay = (id: string, type: string, label: string) => {
     setSelectedNode({ id, type, label });
@@ -531,6 +569,24 @@ export default function Home() {
         )}
 
         {activeTab === "stockroom" && (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z" />
+                  <path d="M6 18h12" />
+                  <path d="M6 14h12" />
+                  <path d="M6 10h12" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Stockroom</h2>
+              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
+                Virtual warehouse visualization with real-time inventory levels, shelf layouts, and stock alerts.
+              </p>
+              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
+            </div>
+          </div>
+        )}      </div>
           <StockRoom inventory={MOCK_BOM} />
         )}
       </div>
@@ -579,9 +635,11 @@ export default function Home() {
       {/* Footer */}
       <div className="border-t px-6 py-2.5 shrink-0" style={{ background: "var(--w-ob-surface)", borderColor: "var(--w-ob-border)" }}>
         <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
-          Click any node to expand. Edge colors indicate relationship type. Particle flow shows data direction.
+          Click any node to expand. Press &quot;/&quot; to open the Warden terminal.
         </p>
       </div>
+
+      <SlashTerminal onTabChange={setActiveTab} />
     </div>
   );
 }

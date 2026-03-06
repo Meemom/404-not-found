@@ -13,7 +13,7 @@ from tools.simulation_tool import simulate_disruption_cascade
 
 risk_engine_agent = Agent(
     name="risk_engine_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Calculates operational impact, revenue at risk, stockout dates, and supply chain risk scores. Use for risk assessment, financial impact, and inventory analysis questions.",
     instruction="""You are the Risk Engine Agent for Warden. Given disruption signals, calculate \
 their operational and financial impact on AutoParts GmbH.

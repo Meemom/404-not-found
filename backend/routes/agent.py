@@ -2,6 +2,7 @@ import json
 import asyncio
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import APIRouter
@@ -14,6 +15,8 @@ from google.genai import types as genai_types
 from agents.orchestrator import orchestrator_agent
 from agents.state import load_initial_state
 from models.action import ChatRequest
+from tools.mcp_manager import mcp_service_manager
+from tools.mcp_perception_tool import get_live_disruption_signals, get_last_persisted_signals
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -23,6 +26,7 @@ APP_NAME = "warden"
 
 # Shared pending actions store (accessible by routes/actions.py too)
 pending_actions_store: list[dict] = []
+DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 def _ts() -> str:
@@ -695,68 +699,142 @@ def _chunk_text(text: str, size: int) -> list[str]:
     return chunks
 
 
-def _get_demo_response(message: str) -> dict:
-    """Return pre-scripted demo responses for common queries."""
-    msg_lower = message.lower()
+def _fmt_eur(amount: float | int) -> str:
+    return f"EUR {amount:,.0f}"
 
-    if "biggest" in msg_lower and "risk" in msg_lower:
-        return {
-            "content": """**Current Biggest Supply Risk: Taiwan Strait Shipping Congestion**
 
-The most critical risk right now is the ongoing Taiwan Strait disruption affecting TSMC semiconductor shipments.
+def _load_json(filename: str):
+    with open(DATA_DIR / filename, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-**Key Metrics:**
-- **Risk Score:** 78/100 (HIGH)
-- **Revenue at Risk:** €4,239,000
-- **Days Until Stockout:** 8 days for MCU-32BIT-AUTO
-- **Affected Orders:** 2 (BMW and VW)
-- **SLA Breach Probability:** 73% for BMW, 45% for VW
 
-**Why This Is Critical:**
-1. TSMC is a **single-source** supplier for MCU-32BIT-AUTO — highest concentration risk
-2. BMW SLA is 14 days with penalty clause — only 6 days remaining
-3. MCU-32BIT-AUTO is used in 60% of our product lines
+def _build_live_snapshot() -> dict:
+    suppliers = _load_json("mock_suppliers.json")
+    orders = _load_json("mock_orders.json")
+    inventory = _load_json("mock_inventory.json")
+    disruptions = _load_json("mock_disruptions.json")
 
-**Secondary Risk:** South Korea export control discussions could affect Samsung SDI battery supply (severity: 4/10, monitoring).
+    active_disruptions = [d for d in disruptions if d.get("is_active")]
+    at_risk_orders = [
+        o for o in orders
+        if any(s.get("status") in ("delayed", "at_risk") for s in o.get("shipments", []))
+    ]
+    low_inventory = [
+        i for i in inventory
+        if i.get("status") in ("below_reorder", "critical")
+    ]
+    at_risk_suppliers = [
+        s for s in suppliers
+        if s.get("current_status") in ("at_risk", "disrupted")
+    ]
 
-Would you like me to run a cascade simulation or generate mitigation strategies?""",
-            "actions": [],
-        }
+    revenue_at_risk = sum(float(o.get("total_value_eur", 0)) for o in at_risk_orders)
+    risk_score = min(100, max(0,
+        (len(active_disruptions) * 20)
+        + (len(at_risk_suppliers) * 15)
+        + (len(at_risk_orders) * 10)
+        + (len(low_inventory) * 8)
+    ))
 
-    if "sla" in msg_lower and ("breach" in msg_lower or "risk" in msg_lower):
-        return {
-            "content": """**Orders at Risk of SLA Breach:**
-
-| Order | Customer | Value | SLA Deadline | Days Left | Breach Prob. |
-|-------|----------|-------|-------------|-----------|-------------|
-| #DE-8821 | BMW AG | €2,250,000 | Mar 10 | **6 days** | 🔴 73% |
-| #DE-9103 | VW Group | €1,989,000 | Mar 21 | 17 days | 🟡 45% |
-| #DE-9301 | BMW AG | €588,000 | Mar 28 | 24 days | 🟢 15% |
-| #DE-9250 | Bosch GmbH | €710,000 | Apr 1 | 28 days | 🟢 8% |
-
-**Most Critical:** BMW Order #DE-8821 — SLA has **penalty clause**, estimated penalty: €180,000.
-
-**Recommended:** Prioritize mitigation for #DE-8821 immediately. Activate Infineon Dresden backup + proactive BMW communication.""",
-            "actions": [],
-        }
-
-    # Default response for any other query
     return {
-        "content": f"""Based on AutoParts GmbH's current supply chain situation:
+        "suppliers": suppliers,
+        "orders": orders,
+        "inventory": inventory,
+        "disruptions": disruptions,
+        "active_disruptions": active_disruptions,
+        "at_risk_orders": at_risk_orders,
+        "at_risk_suppliers": at_risk_suppliers,
+        "low_inventory": low_inventory,
+        "revenue_at_risk": revenue_at_risk,
+        "risk_score": risk_score,
+    }
 
-**Current Status Overview:**
-- **Overall Risk Score:** 78/100 (HIGH)
-- **Active Disruptions:** 1 (Taiwan Strait shipping congestion)
-- **Revenue at Risk:** €4,239,000
-- **Pending Actions:** {len(pending_actions_store)} awaiting approval
 
-The Taiwan Strait situation remains our primary concern, with TSMC shipments delayed 14-21 days. MCU-32BIT-AUTO inventory is at 12 days and declining.
+def _top_supplier_risks(snapshot: dict) -> list[dict]:
+    suppliers = list(snapshot["suppliers"])
+    suppliers.sort(
+        key=lambda s: (
+            0 if s.get("current_status") == "disrupted" else 1 if s.get("current_status") == "at_risk" else 2,
+            s.get("health_score", 100),
+        )
+    )
+    return suppliers[:3]
 
-How can I help you further? I can:
-- Analyze specific supplier risks
-- Run disruption cascade simulations
-- Generate mitigation strategies
-- Draft communications or PO adjustments""",
+
+def _get_demo_response(message: str) -> dict:
+    """Query-aware fallback when ADK/LLM path is unavailable."""
+    msg = message.lower()
+    snapshot = _build_live_snapshot()
+
+    risk_score = snapshot["risk_score"]
+    revenue_at_risk = snapshot["revenue_at_risk"]
+    active_disruptions = snapshot["active_disruptions"]
+    at_risk_orders = snapshot["at_risk_orders"]
+    low_inventory = snapshot["low_inventory"]
+
+    if any(k in msg for k in ["supplier", "vendors", "vendor", "health"]):
+        top = _top_supplier_risks(snapshot)
+        content = ["Supplier risk view (fallback mode):", ""]
+        for s in top:
+            content.append(
+                f"- {s.get('name')}: status={s.get('current_status')}, health={s.get('health_score')}, lead_time={s.get('lead_time_days')}d"
+            )
+        content.append("")
+        content.append("Ask me: 'Which supplier is single-source?' or 'Draft supplier outreach'.")
+        return {"content": "\n".join(content), "actions": []}
+
+    if any(k in msg for k in ["inventory", "stock", "stockout", "component"]):
+        critical = sorted(low_inventory, key=lambda i: i.get("days_of_supply", 999))[:4]
+        lines = ["Inventory watch (fallback mode):", ""]
+        if not critical:
+            lines.append("- No components below reorder threshold.")
+        for i in critical:
+            lines.append(
+                f"- {i.get('name')} ({i.get('component_id')}): {i.get('days_of_supply')} days of supply, status={i.get('status')}"
+            )
+        lines.append("")
+        lines.append("I can propose reorder quantities if you share target safety-stock days.")
+        return {"content": "\n".join(lines), "actions": []}
+
+    if any(k in msg for k in ["sla", "order", "revenue", "breach"]):
+        ranked = sorted(at_risk_orders, key=lambda o: o.get("completion_pct", 100))[:5]
+        lines = [
+            "Order/SLA risk view (fallback mode):",
+            f"- Revenue at risk: {_fmt_eur(revenue_at_risk)}",
+            "",
+        ]
+        for o in ranked:
+            breach_prob = 100 - int(o.get("completion_pct", 0))
+            lines.append(
+                f"- {o.get('order_id')} | {o.get('customer_name')} | {_fmt_eur(o.get('total_value_eur', 0))} | breach_prob~{breach_prob}%"
+            )
+        lines.append("")
+        lines.append("I can also draft customer communication for the highest-risk order.")
+        return {"content": "\n".join(lines), "actions": []}
+
+    if any(k in msg for k in ["disruption", "risk", "status", "overview", "summary"]):
+        disruption_title = active_disruptions[0].get("title") if active_disruptions else "No active disruptions"
+        lines = [
+            "Supply chain overview (fallback mode):",
+            f"- Risk score: {risk_score}/100",
+            f"- Active disruptions: {len(active_disruptions)} ({disruption_title})",
+            f"- Revenue at risk: {_fmt_eur(revenue_at_risk)}",
+            f"- Low-inventory components: {len(low_inventory)}",
+            f"- Pending actions: {len(pending_actions_store)}",
+            "",
+            "You can ask for supplier detail, inventory breakdown, or SLA order risk analysis.",
+        ]
+        return {"content": "\n".join(lines), "actions": []}
+
+    return {
+        "content": (
+            "I can help with navigation, analysis, and action drafting.\n\n"
+            "Try one of these:\n"
+            "- 'Show supplier risk summary'\n"
+            "- 'Which orders are most likely to breach SLA?'\n"
+            "- 'Show low inventory components'\n"
+            "- '/actions list' to review pending actions"
+        ),
         "actions": [],
     }
 
@@ -807,6 +885,25 @@ async def agent_monitor():
         "risk_delta": risk_delta,
         "timestamp": _ts(),
     }
+
+
+@router.get("/perception/live")
+async def perception_live(
+    query: str = "automotive semiconductor disruption",
+    limit: int = 8,
+):
+    """Run live perception ingestion with Brave/fetch/filesystem and fallback."""
+    result = get_live_disruption_signals(query=query, limit=limit)
+    if result.get("source_mode") == "fallback":
+        cached = get_last_persisted_signals()
+        result["cached_snapshot"] = cached
+    return result
+
+
+@router.get("/mcp/status")
+async def get_mcp_status():
+    """Expose MCP service availability for debugging and UI checks."""
+    return mcp_service_manager.status()
 
 
 @router.get("/actions/pending")

@@ -50,7 +50,7 @@ def extract_with_gemini(file_bytes: bytes, filename: str, doc_type: str) -> list
     )
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=[uploaded, PROMPTS[doc_type]],
     )
 
