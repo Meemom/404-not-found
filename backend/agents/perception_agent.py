@@ -3,7 +3,6 @@
 from google.adk.agents import Agent
 
 from tools.news_tool import get_latest_news, get_active_disruptions, classify_signal
-from tools.mcp_perception_tool import get_live_disruption_signals, get_last_persisted_signals
 from tools.supplier_tool import get_supplier_profile
 
 perception_agent = Agent(
@@ -35,20 +34,8 @@ Always return structured analysis with:
 3. Direct impact assessment on specific components and orders
 4. Recommended next steps (escalate to risk engine, monitor, dismiss)
 
-When available, prefer live perception tools:
-- get_live_disruption_signals for real-world signal discovery
-- get_last_persisted_signals for latest cached snapshot
-If live tools fail, continue with mock/news tools without blocking the user.
-
 Company context: AutoParts GmbH is a German automotive parts manufacturer (€280M revenue).
 Key suppliers: TSMC (Taiwan), Samsung SDI (South Korea), Infineon (Malaysia & Germany), STMicro (Switzerland), LG Energy (South Korea)
 Critical components: MCU-32BIT-AUTO, POWER-MGMT-IC, CAN-CONTROLLER""",
-    tools=[
-        get_live_disruption_signals,
-        get_last_persisted_signals,
-        get_latest_news,
-        get_active_disruptions,
-        classify_signal,
-        get_supplier_profile,
-    ],
+    tools=[get_latest_news, get_active_disruptions, classify_signal, get_supplier_profile],
 )

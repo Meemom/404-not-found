@@ -15,8 +15,6 @@ from google.genai import types as genai_types
 from agents.orchestrator import orchestrator_agent
 from agents.state import load_initial_state
 from models.action import ChatRequest
-from tools.mcp_manager import mcp_service_manager
-from tools.mcp_perception_tool import get_live_disruption_signals, get_last_persisted_signals
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -885,25 +883,6 @@ async def agent_monitor():
         "risk_delta": risk_delta,
         "timestamp": _ts(),
     }
-
-
-@router.get("/perception/live")
-async def perception_live(
-    query: str = "automotive semiconductor disruption",
-    limit: int = 8,
-):
-    """Run live perception ingestion with Brave/fetch/filesystem and fallback."""
-    result = get_live_disruption_signals(query=query, limit=limit)
-    if result.get("source_mode") == "fallback":
-        cached = get_last_persisted_signals()
-        result["cached_snapshot"] = cached
-    return result
-
-
-@router.get("/mcp/status")
-async def get_mcp_status():
-    """Expose MCP service availability for debugging and UI checks."""
-    return mcp_service_manager.status()
 
 
 @router.get("/actions/pending")
