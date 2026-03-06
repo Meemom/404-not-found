@@ -18,9 +18,11 @@ import {
   Globe,
   Upload,
   ClipboardList,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { useWardenStore } from "@/lib/store";
-import { updateCompanyProfile, getCompanyProfile } from "@/lib/api";
+import { updateCompanyProfile, getCompanyProfile, uploadDocument } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import Typewriter from "@/components/onboarding/Typewriter";
 import GlowingOrb from "@/components/onboarding/GlowingOrb";
@@ -249,6 +251,12 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { setCompany } = useWardenStore();
 
+  // tracking uploads
+  const [uploadedSuppliers, setUploadedSuppliers] = useState<any[] | null>(null);
+  const [uploadedSLA, setUploadedSLA] = useState<any[] | null>(null);
+  const [uploadedBOM, setUploadedBOM] = useState<any[] | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null); // "suppliers" | "sla" | "bom"
+
   // Step data
   const [selectedIndustry, setSelectedIndustry] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -277,9 +285,9 @@ export default function OnboardingPage() {
       case 3:
         return true;
       case 4:
-        return suppliers.some((s) => s.name.trim() !== "");
+        return suppliers.some((s) => s.name.trim() !== "") || (uploadedSuppliers !== null && uploadedSuppliers.length > 0);
       case 5:
-        return slaPenalties.some((s) => s.customer.trim() !== "");
+        return slaPenalties.some((s) => s.customer.trim() !== "") || (uploadedSLA !== null && uploadedSLA.length > 0);
       default:
         return true;
     }
@@ -319,6 +327,23 @@ export default function OnboardingPage() {
     const updated = [...slaPenalties];
     updated[index] = { ...updated[index], [field]: value };
     setSlaPenalties(updated);
+  };
+
+  const handleUpload = async (
+    file: File,
+    type: "suppliers" | "sla" | "bom"
+  ) => {
+    setUploading(type);
+    try {
+      const result = await uploadDocument(type, file, "default");
+      if (type === "suppliers") setUploadedSuppliers(result.extracted);
+      if (type === "sla") setUploadedSLA(result.extracted);
+      if (type === "bom") setUploadedBOM(result.extracted);
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setUploading(null);
+    }
   };
 
   const handleFinish = async () => {
@@ -792,13 +817,46 @@ export default function OnboardingPage() {
                   <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">or</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
-                <label className="ob-card flex flex-col items-center gap-2 p-5 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                    <Upload size={18} className="text-blue-500" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">Upload a document</span>
-                  <span className="text-xs text-gray-400">CSV, Excel, or PDF with supplier information</span>
-                  <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+                <label className={`ob-card flex flex-col items-center gap-2 p-5 cursor-pointer transition-all text-center ${
+                  uploadedSuppliers ? "border-green-300 bg-green-50/30" : "hover:border-blue-300 hover:bg-blue-50/30"
+                }`}>
+                  {uploading === "suppliers" ? (
+                    <>
+                      <Loader2 size={24} className="text-blue-500 animate-spin" />
+                      <span className="text-sm font-medium text-gray-700">Processing with AI...</span>
+                      <span className="text-xs text-gray-400">Extracting supplier data from your document</span>
+                    </>
+                  ) : uploadedSuppliers ? (
+                    <>
+                      <CheckCircle2 size={24} className="text-green-500" />
+                      <span className="text-sm font-medium text-green-700">{uploadedSuppliers.length} suppliers extracted</span>
+                      <div className="text-xs text-gray-500 space-y-0.5">
+                        {uploadedSuppliers.slice(0, 3).map((s: any, i: number) => (
+                          <p key={i}>{s.name}{s.country ? ` — ${s.country}` : ""}</p>
+                        ))}
+                        {uploadedSuppliers.length > 3 && <p>+{uploadedSuppliers.length - 3} more</p>}
+                      </div>
+                      <span className="text-xs text-blue-500 mt-1">Click to re-upload</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                        <Upload size={18} className="text-blue-500" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">Upload a document</span>
+                      <span className="text-xs text-gray-400">CSV, Excel, or PDF with supplier information</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpload(file, "suppliers");
+                      e.target.value = "";
+                    }}
+                  />
                 </label>
               </div>
 
@@ -892,13 +950,46 @@ export default function OnboardingPage() {
                   <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">or</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
-                <label className="ob-card flex flex-col items-center gap-2 p-5 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                    <Upload size={18} className="text-blue-500" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">Upload a document</span>
-                  <span className="text-xs text-gray-400">CSV, Excel, or PDF with SLA and penalty details</span>
-                  <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+                <label className={`ob-card flex flex-col items-center gap-2 p-5 cursor-pointer transition-all text-center ${
+                  uploadedSLA ? "border-green-300 bg-green-50/30" : "hover:border-blue-300 hover:bg-blue-50/30"
+                }`}>
+                  {uploading === "sla" ? (
+                    <>
+                      <Loader2 size={24} className="text-blue-500 animate-spin" />
+                      <span className="text-sm font-medium text-gray-700">Processing with AI...</span>
+                      <span className="text-xs text-gray-400">Extracting customer and SLA data</span>
+                    </>
+                  ) : uploadedSLA ? (
+                    <>
+                      <CheckCircle2 size={24} className="text-green-500" />
+                      <span className="text-sm font-medium text-green-700">{uploadedSLA.length} customers extracted</span>
+                      <div className="text-xs text-gray-500 space-y-0.5">
+                        {uploadedSLA.slice(0, 3).map((s: any, i: number) => (
+                          <p key={i}>{s.customer}{s.sla_days ? ` — ${s.sla_days}d SLA` : ""}</p>
+                        ))}
+                        {uploadedSLA.length > 3 && <p>+{uploadedSLA.length - 3} more</p>}
+                      </div>
+                      <span className="text-xs text-blue-500 mt-1">Click to re-upload</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                        <Upload size={18} className="text-blue-500" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">Upload a document</span>
+                      <span className="text-xs text-gray-400">CSV, Excel, or PDF with SLA and penalty details</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpload(file, "sla");
+                      e.target.value = "";
+                    }}
+                  />
                 </label>
               </div>
 
@@ -932,19 +1023,56 @@ export default function OnboardingPage() {
                 Upload your BOM so Warden can map parts to suppliers and identify single-source risks. You can skip this and add it later.
               </p>
 
-              <label className="ob-card flex flex-col items-center gap-3 p-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all text-center">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                  <Upload size={24} className="text-blue-500" />
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-gray-700 block">
-                    Click to upload or drag and drop
-                  </span>
-                  <span className="text-xs text-gray-400 mt-1 block">
-                    CSV, Excel (.xlsx), or PDF &mdash; max 10MB
-                  </span>
-                </div>
-                <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" />
+              <label className={`ob-card flex flex-col items-center gap-3 p-8 cursor-pointer transition-all text-center ${
+                uploadedBOM ? "border-green-300 bg-green-50/30" : "hover:border-blue-300 hover:bg-blue-50/30"
+              }`}>
+                {uploading === "bom" ? (
+                  <>
+                    <Loader2 size={28} className="text-blue-500 animate-spin" />
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700 block">Processing with AI...</span>
+                      <span className="text-xs text-gray-400 mt-1 block">Extracting parts and supplier mappings</span>
+                    </div>
+                  </>
+                ) : uploadedBOM ? (
+                  <>
+                    <CheckCircle2 size={28} className="text-green-500" />
+                    <div>
+                      <span className="text-sm font-semibold text-green-700 block">{uploadedBOM.length} parts extracted</span>
+                      <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        {uploadedBOM.slice(0, 3).map((p: any, i: number) => (
+                          <p key={i}>{p.part_number}{p.supplier_name ? ` — ${p.supplier_name}` : ""}</p>
+                        ))}
+                        {uploadedBOM.length > 3 && <p>+{uploadedBOM.length - 3} more</p>}
+                      </div>
+                      <span className="text-xs text-blue-500 mt-2 block">Click to re-upload</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                      <Upload size={24} className="text-blue-500" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700 block">
+                        Click to upload or drag and drop
+                      </span>
+                      <span className="text-xs text-gray-400 mt-1 block">
+                        CSV, Excel (.xlsx), or PDF &mdash; max 10MB
+                      </span>
+                    </div>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUpload(file, "bom");
+                    e.target.value = "";
+                  }}
+                />
               </label>
 
               <div className="mt-5 ob-card p-4">
@@ -1048,16 +1176,27 @@ export default function OnboardingPage() {
                   <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">
                     Suppliers
                   </span>
-                  <span className="text-sm text-gray-700">
-                    {suppliers.filter((s) => s.name.trim()).length} configured
+                  <span className="text-sm text-gray-700 flex items-center gap-2">
+                    {suppliers.filter((s) => s.name.trim()).length + (uploadedSuppliers?.length ?? 0)} configured
+                    {uploadedSuppliers && <CheckCircle2 size={14} className="text-green-500" />}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">
+                    SLA Rules
+                  </span>
+                  <span className="text-sm text-gray-700 flex items-center gap-2">
+                    {slaPenalties.filter((s) => s.customer.trim()).length + (uploadedSLA?.length ?? 0)} configured
+                    {uploadedSLA && <CheckCircle2 size={14} className="text-green-500" />}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">
-                    SLA Rules
+                    Bill of Materials
                   </span>
-                  <span className="text-sm text-gray-700">
-                    {slaPenalties.filter((s) => s.customer.trim()).length} configured
+                  <span className="text-sm text-gray-700 flex items-center gap-2">
+                    {uploadedBOM ? `${uploadedBOM.length} parts` : "Not uploaded"}
+                    {uploadedBOM && <CheckCircle2 size={14} className="text-green-500" />}
                   </span>
                 </div>
               </div>
