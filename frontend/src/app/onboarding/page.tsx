@@ -366,6 +366,9 @@ export default function OnboardingPage() {
         risk_appetite: riskAppetite,
         onboarding_suppliers: suppliers.filter((s) => s.name.trim()),
         onboarding_sla_penalties: slaPenalties.filter((s) => s.customer.trim()),
+        uploaded_suppliers: uploadedSuppliers || [],
+        uploaded_sla: uploadedSLA || [],
+        uploaded_bom: uploadedBOM || [],
       });
       const profile = await getCompanyProfile();
       setCompany(profile);
