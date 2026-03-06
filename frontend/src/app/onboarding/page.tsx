@@ -245,12 +245,55 @@ interface SLAPenalty {
   penaltyPercent: string;
 }
 
-/* ── Transition screen shown after onboarding completes ── */
+/* ── Transition screen: shows discovered events then navigates ── */
+const HARDCODED_EVENTS = [
+  { type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, summary: "PLA naval exercises causing 14-day shipping delays at Port of Kaohsiung, impacting semiconductor supply lines." },
+  { type: "Market", region: "Semiconductor Price Surge", severity: 5, summary: "Global chip demand spike driving 12% price increases across automotive-grade semiconductors." },
+];
+
+const STATUS_STEPS = [
+  { msg: "Connecting to global monitoring network...", progress: 8, delay: 800 },
+  { msg: "Scanning Reuters, Bloomberg, Nikkei feeds...", progress: 18, delay: 2200 },
+  { msg: "Parsing 2,847 supply chain signals...", progress: 30, delay: 4000 },
+  { msg: "Analyzing geopolitical risk vectors...", progress: 42, delay: 5500 },
+  { msg: "Cross-referencing supplier network...", progress: 55, delay: 7200 },
+  { msg: "Evaluating shipping lane disruptions...", progress: 65, delay: 8800 },
+  { msg: "Quantifying revenue impact...", progress: 78, delay: 10200 },
+  { msg: "Generating risk assessment...", progress: 90, delay: 11500 },
+  { msg: "Scan complete — 2 active threats detected", progress: 100, delay: 13000 },
+];
+
 function TransitionScreen({ companyName, onDone }: { companyName: string; onDone: () => void }) {
+  const [statusMsg, setStatusMsg] = useState("Initializing Warden...");
+  const [progress, setProgress] = useState(0);
+  const [visibleEvents, setVisibleEvents] = useState(0);
+
   useEffect(() => {
-    const timer = setTimeout(onDone, 3500);
-    return () => clearTimeout(timer);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // Status steps
+    for (const step of STATUS_STEPS) {
+      timers.push(setTimeout(() => {
+        setStatusMsg(step.msg);
+        setProgress(step.progress);
+      }, step.delay));
+    }
+
+    // Reveal events one by one after "analyzing" phase
+    timers.push(setTimeout(() => setVisibleEvents(1), 9200));
+    timers.push(setTimeout(() => setVisibleEvents(2), 10800));
+
+    // Navigate after scan fully completes
+    timers.push(setTimeout(onDone, 14500));
+
+    return () => timers.forEach(clearTimeout);
   }, [onDone]);
+
+  const severityColor = (s: number) => {
+    if (s >= 8) return "bg-red-500";
+    if (s >= 5) return "bg-amber-400";
+    return "bg-green-400";
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
@@ -302,21 +345,13 @@ function TransitionScreen({ companyName, onDone }: { companyName: string; onDone
           key={i}
           className="absolute rounded-full border border-white/10"
           style={{ width: 300, height: 300 }}
-          animate={{
-            scale: [0.5, 2.5],
-            opacity: [0.3, 0],
-          }}
-          transition={{
-            duration: 3,
-            delay,
-            repeat: Infinity,
-            ease: "easeOut",
-          }}
+          animate={{ scale: [0.5, 2.5], opacity: [0.3, 0] }}
+          transition={{ duration: 3, delay, repeat: Infinity, ease: "easeOut" }}
         />
       ))}
 
       {/* Content */}
-      <div className="relative z-10 text-center px-8">
+      <div className="relative z-10 text-center px-8 max-w-2xl w-full">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -341,7 +376,7 @@ function TransitionScreen({ companyName, onDone }: { companyName: string; onDone
           </motion.h1>
 
           <motion.div
-            className="flex items-center justify-center gap-3"
+            className="flex items-center justify-center gap-3 mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.0 }}
@@ -362,21 +397,71 @@ function TransitionScreen({ companyName, onDone }: { companyName: string; onDone
           </motion.div>
         </motion.div>
 
-        {/* Loading bar */}
+        {/* Status message */}
+        <motion.p
+          className="text-blue-200/80 text-xs font-mono mb-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+        >
+          {statusMsg}
+        </motion.p>
+
+        {/* Progress bar */}
         <motion.div
-          className="mt-10 mx-auto h-1 rounded-full overflow-hidden"
-          style={{ width: 200, background: "rgba(255,255,255,0.15)" }}
+          className="mx-auto h-1 rounded-full overflow-hidden mb-6"
+          style={{ width: 280, background: "rgba(255,255,255,0.15)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
         >
           <motion.div
             className="h-full rounded-full bg-white/60"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ delay: 1.2, duration: 2.2, ease: "easeInOut" }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           />
         </motion.div>
+
+        {/* Live event feed */}
+        <AnimatePresence>
+          {visibleEvents > 0 && (
+            <motion.div
+              className="mx-auto max-w-md space-y-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              {HARDCODED_EVENTS.slice(0, visibleEvents).map((evt, i) => (
+                <motion.div
+                  key={i}
+                  className="flex items-start gap-3 rounded-lg px-4 py-3 text-left"
+                  style={{ background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)" }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.3 }}
+                >
+                  <div className="flex flex-col items-center gap-1 pt-0.5">
+                    <div className={`w-2.5 h-2.5 rounded-full ${severityColor(evt.severity)}`} />
+                    <span className="text-[10px] text-white/50 font-mono">{evt.severity}/10</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-semibold text-blue-300 uppercase tracking-wider">
+                        {evt.type}
+                      </span>
+                    </div>
+                    <p className="text-sm text-white/90 font-medium leading-tight truncate">
+                      {evt.region}
+                    </p>
+                    <p className="text-[11px] text-white/50 mt-0.5 line-clamp-1">
+                      {evt.summary}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -622,7 +707,7 @@ export default function OnboardingPage() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 4.5, duration: 0.8 }}
+                  transition={{ delay: 3, duration: 0.8 }}
                   className="text-gray-400 max-w-lg mx-auto mb-10 leading-relaxed"
                 >
                   Warden autonomously monitors your supply chain, quantifies risk in real-time,
