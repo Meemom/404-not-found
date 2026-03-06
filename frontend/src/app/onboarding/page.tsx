@@ -364,7 +364,7 @@ function TransitionScreen({ companyName, onDone }: { companyName: string; onDone
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <WardenAvatar size={80} animation="running" />
+            <WardenAvatar size={150} animation="running" />
           </motion.div>
 
           <motion.p
