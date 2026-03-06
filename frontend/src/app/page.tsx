@@ -569,24 +569,6 @@ export default function Home() {
         )}
 
         {activeTab === "stockroom" && (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--w-ob-bg)" }}>
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: "var(--w-ob-bg-tint)", border: "1px solid var(--w-ob-border)" }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--w-blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z" />
-                  <path d="M6 18h12" />
-                  <path d="M6 14h12" />
-                  <path d="M6 10h12" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--w-ob-text)" }}>3D Stockroom</h2>
-              <p className="text-sm max-w-md" style={{ color: "var(--w-ob-text-muted)" }}>
-                Virtual warehouse visualization with real-time inventory levels, shelf layouts, and stock alerts.
-              </p>
-              <p className="text-xs mt-3" style={{ color: "var(--w-ob-text-faint)" }}>Coming soon</p>
-            </div>
-          </div>
-        )}      </div>
           <StockRoom inventory={MOCK_BOM} />
         )}
       </div>
