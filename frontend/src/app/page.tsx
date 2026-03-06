@@ -34,7 +34,8 @@ import { VisualizationSidebar } from "@/components/visualization/VisualizationSi
 import { NavigationBar, type ViewTab } from "@/components/visualization/NavigationBar";
 import SlashTerminal from "@/components/copilot/SlashTerminal";
 import { useWardenStore } from "@/lib/store";
-import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploadedData } from "@/lib/api";
+import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploadedData, getScannedEvents } from "@/lib/api";
+import type { ScannedEvent } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
 import type { BOMItem } from "@/lib/types";
 
@@ -192,6 +193,7 @@ export default function Home() {
   const [uploadedSuppliers, setUploadedSuppliers] = useState<any[]>([]);
   const [uploadedSLA, setUploadedSLA] = useState<any[]>([]);
   const [uploadedBOM, setUploadedBOM] = useState<any[]>([]);
+  const [scannedEvents, setScannedEvents] = useState<ScannedEvent[]>([]);
 
   useEffect(() => {
     if (!onboarded) {
@@ -204,11 +206,12 @@ export default function Home() {
 
     async function loadInitialData() {
       try {
-        const [company, overview, actions, uploaded] = await Promise.all([
+        const [company, overview, actions, uploaded, events] = await Promise.all([
           getCompanyProfile(),
           getOperationsOverview(),
           getPendingActions(),
           getUploadedData(),
+          getScannedEvents().catch(() => []),
         ]);
         setCompany(company);
         setDashboard(overview);
@@ -216,6 +219,7 @@ export default function Home() {
         if (uploaded.suppliers?.length) setUploadedSuppliers(uploaded.suppliers);
         if (uploaded.sla?.length) setUploadedSLA(uploaded.sla);
         if (uploaded.bom?.length) setUploadedBOM(uploaded.bom);
+        if (events?.length) setScannedEvents(events);
       } catch (err) {
         console.error("Failed to load root data:", err);
       }
@@ -257,31 +261,39 @@ export default function Home() {
     const toId = (prefix: string, name: string) =>
       `${prefix}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`;
 
-    // ── EVENTS (always hardcoded) ──
-    nodes.push(
-      {
-        id: "evt-taiwan",
-        type: "event",
-        position: { x: COL.event, y: 0 },
-        data: {
-          id: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion",
-          severity: 8, confidence: 85, expected_delay_days: 14, start_time: "2026-03-01",
-          onClick: () => openOverlay("evt-taiwan", "Event", "Taiwan Strait Disruption"),
-        },
-      },
-      {
-        id: "evt-semi",
-        type: "event",
-        position: { x: COL.event, y: ROW_GAP * 1.5 },
-        data: {
-          id: "EVT-002", type: "Market", region: "Semiconductor Price Surge",
-          severity: 5, confidence: 72, expected_delay_days: 7, start_time: "2026-02-28",
-          onClick: () => openOverlay("evt-semi", "Event", "Semiconductor Price Surge"),
-        },
-      },
-    );
+    // ── EVENTS (from scan or fallback) ──
+    const eventsList = scannedEvents.length > 0
+      ? scannedEvents.map((evt, i) => ({
+          id: toId("evt", evt.region || `event-${i}`),
+          evtId: `EVT-${String(i + 1).padStart(3, "0")}`,
+          type: evt.type,
+          region: evt.region,
+          severity: evt.severity,
+          confidence: evt.confidence ?? 75,
+          expected_delay_days: evt.expected_delay_days ?? 7,
+        }))
+      : [
+          { id: "evt-taiwan", evtId: "EVT-001", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
+          { id: "evt-semi", evtId: "EVT-002", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
+        ];
 
-    // ── HARDCODED SUPPLIERS ──
+    let eventY = 0;
+    for (const evt of eventsList) {
+      nodes.push({
+        id: evt.id, type: "event",
+        position: { x: COL.event, y: eventY },
+        data: {
+          id: evt.evtId, type: evt.type, region: evt.region,
+          severity: evt.severity, confidence: evt.confidence,
+          expected_delay_days: evt.expected_delay_days,
+          start_time: new Date().toISOString().split("T")[0],
+          onClick: () => openOverlay(evt.id, "Event", evt.region),
+        },
+      });
+      eventY += ROW_GAP;
+    }
+
+    // ── DEFAULT SUPPLIERS ──
     const hardcodedSuppliers = [
       { id: "sup-tsmc", supId: "SUP-001", name: "TSMC", country: "Taiwan", health_score: 35, criticality: "critical" },
       { id: "sup-infineon", supId: "SUP-002", name: "Infineon", country: "Germany", health_score: 82, criticality: "high" },
@@ -316,7 +328,7 @@ export default function Home() {
       supplierY += ROW_GAP;
     }
 
-    // ── HARDCODED PARTS ──
+    // ── DEFAULT PARTS ──
     const hardcodedParts = [
       { id: "part-mcu", partId: "MCU-32BIT-AUTO", name: "MCU-32BIT-AUTO", criticality: "critical", inventory_days: 8, lead_time_days: 21, safety_stock_days: 14 },
       { id: "part-pmic", partId: "POWER-MGMT-IC", name: "POWER-MGMT-IC", criticality: "high", inventory_days: 18, lead_time_days: 14, safety_stock_days: 10 },
@@ -366,7 +378,7 @@ export default function Home() {
       partY += ROW_GAP;
     }
 
-    // ── HARDCODED ORDERS ──
+    // ── DEFAULT ORDERS ──
     const hardcodedOrders = [
       { id: "ord-bmw", ordId: "#DE-8821", customer: "BMW AG", due_date: "Mar 10", revenue: 2_250_000, margin: 18, status: "at_risk" },
       { id: "ord-vw", ordId: "#DE-9103", customer: "VW Group", due_date: "Mar 21", revenue: 1_989_000, margin: 15, status: "at_risk" },
@@ -383,7 +395,7 @@ export default function Home() {
       orderY += ROW_GAP;
     }
 
-    // ── HARDCODED CUSTOMERS ──
+    // ── DEFAULT CUSTOMERS ──
     const hardcodedCustomers = [
       { id: "cust-bmw", custId: "CUST-001", name: "BMW AG", annual_revenue: 85_000_000, sla_days: 14 },
       { id: "cust-vw", custId: "CUST-002", name: "VW Group", annual_revenue: 72_000_000, sla_days: 21 },
@@ -419,12 +431,24 @@ export default function Home() {
       customerY += ROW_GAP;
     }
 
-    // ── HARDCODED EDGES ──
+    // ── EDGES ──
+
+    // AFFECTS: connect each event to a subset of suppliers (round-robin)
+    const supplierNodeIds = Array.from(supplierIds);
+    for (let i = 0; i < eventsList.length; i++) {
+      const evt = eventsList[i];
+      // Connect to 1-2 suppliers based on severity
+      const connectCount = evt.severity >= 7 ? 2 : 1;
+      for (let j = 0; j < connectCount && j < supplierNodeIds.length; j++) {
+        const targetSup = supplierNodeIds[(i + j) % supplierNodeIds.length];
+        edges.push({
+          id: `e-${evt.id}-${targetSup}`, source: evt.id, target: targetSup,
+          type: "animated", data: { relationship: "affects" },
+        });
+      }
+    }
+
     edges.push(
-      // AFFECTS: event → supplier
-      { id: "e-tw-tsmc", source: "evt-taiwan", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
-      { id: "e-tw-inf", source: "evt-taiwan", target: "sup-infineon", type: "animated", data: { relationship: "affects" } },
-      { id: "e-semi-tsmc", source: "evt-semi", target: "sup-tsmc", type: "animated", data: { relationship: "affects" } },
       // SUPPLIES: supplier → part
       { id: "e-tsmc-mcu", source: "sup-tsmc", target: "part-mcu", type: "animated", data: { relationship: "supplies" } },
       { id: "e-tsmc-pmic", source: "sup-tsmc", target: "part-pmic", type: "animated", data: { relationship: "supplies" } },
@@ -444,7 +468,7 @@ export default function Home() {
     );
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [uploadedSuppliers, uploadedSLA, uploadedBOM, openOverlay]);
+  }, [uploadedSuppliers, uploadedSLA, uploadedBOM, scannedEvents, openOverlay]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -562,10 +586,17 @@ export default function Home() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
         onTabChange={setActiveTab}
-        events={[
-          { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
-          { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
-        ]}
+        events={scannedEvents.length > 0
+          ? scannedEvents.map((evt, i) => ({
+              id: `evt-${evt.region?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `event-${i}`}`,
+              type: evt.type, region: evt.region, severity: evt.severity,
+              confidence: evt.confidence ?? 75, expected_delay_days: evt.expected_delay_days ?? 7,
+            }))
+          : [
+              { id: "evt-taiwan", type: "Geopolitical", region: "Taiwan Strait Shipping Congestion", severity: 8, confidence: 85, expected_delay_days: 14 },
+              { id: "evt-semi", type: "Market", region: "Semiconductor Price Surge", severity: 5, confidence: 72, expected_delay_days: 7 },
+            ]
+        }
         suppliers={[
           { id: "sup-tsmc", name: "TSMC", country: "Taiwan", health_score: 35, criticality: "critical" },
           { id: "sup-infineon", name: "Infineon", country: "Germany", health_score: 82, criticality: "high" },

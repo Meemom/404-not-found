@@ -146,4 +146,48 @@ export async function uploadDocument(
     return res.json();
   }
 
+// ── Event Scan (SSE) ──
+export interface ScannedEvent {
+  type: string;
+  region: string;
+  severity: number;
+  confidence: number;
+  expected_delay_days: number;
+  headline: string;
+  summary: string;
+}
+
+export function scanEvents(
+  onStatus: (msg: string, progress: number) => void,
+  onEvent: (evt: ScannedEvent) => void,
+): Promise<ScannedEvent[]> {
+  return new Promise((resolve, reject) => {
+    const events: ScannedEvent[] = [];
+    const evtSource = new EventSource(`${API_BASE}/company/scan-events`);
+
+    evtSource.addEventListener("status", (e) => {
+      const data = JSON.parse((e as MessageEvent).data);
+      onStatus(data.message, data.progress ?? 0);
+    });
+
+    evtSource.addEventListener("event_found", (e) => {
+      const evt: ScannedEvent = JSON.parse((e as MessageEvent).data);
+      events.push(evt);
+      onEvent(evt);
+    });
+
+    evtSource.addEventListener("done", (e) => {
+      evtSource.close();
+      resolve(events);
+    });
+
+    evtSource.onerror = () => {
+      evtSource.close();
+      resolve(events); // resolve with whatever we got
+    };
+  });
+}
+
+export const getScannedEvents = () => fetchAPI<any[]>("/company/scanned-events");
+
 export default API_BASE;

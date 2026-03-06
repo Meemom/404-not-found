@@ -453,7 +453,7 @@ export function VisualizationSidebar({
                     <div className="flex items-start gap-2">
                       <AlertCircle size={14} className="text-blue-500 flex-shrink-0 mt-0.5" />
                       <p className="text-[10px]" style={{ color: "var(--w-ob-text-faint)" }}>
-                        Click any item to locate it on the graph. Click nodes directly for detailed expanded views.
+                        Click nodes directly for detailed expanded views.
                       </p>
                     </div>
                   </div>
