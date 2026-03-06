@@ -1,10 +1,21 @@
+import csv
 import io
 import json
+import uuid
 from fastapi import APIRouter, UploadFile, File, Form
 from google import genai
 from google.genai import types
+from openpyxl import load_workbook
 
 from db import supabase
+
+
+def _is_valid_uuid(val: str) -> bool:
+    try:
+        uuid.UUID(val)
+        return True
+    except ValueError:
+        return False
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 client = genai.Client()
@@ -37,11 +48,28 @@ MIME_MAP = {
 }
 
 
+def _xlsx_to_csv(file_bytes: bytes) -> bytes:
+    """Convert an Excel file to CSV bytes."""
+    wb = load_workbook(filename=io.BytesIO(file_bytes), read_only=True, data_only=True)
+    ws = wb.active
+    output = io.StringIO()
+    writer = csv.writer(output)
+    for row in ws.iter_rows(values_only=True):
+        writer.writerow(row)
+    wb.close()
+    return output.getvalue().encode("utf-8")
+
+
 def extract_with_gemini(file_bytes: bytes, filename: str, doc_type: str) -> list:
     """Send file to Gemini and get structured JSON back."""
-    # Determine MIME type from extension
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    mime = MIME_MAP.get(ext, "application/octet-stream")
+
+    if ext in (".xlsx", ".xls"):
+        file_bytes = _xlsx_to_csv(file_bytes)
+        mime = "text/csv"
+        filename = filename.rsplit(".", 1)[0] + ".csv"
+    else:
+        mime = MIME_MAP.get(ext, "application/octet-stream")
 
     # Upload file to Gemini
     uploaded = client.files.upload(
@@ -67,16 +95,16 @@ async def upload_suppliers(
     company_id: str = Form(...),
   ):
     content = await file.read()
-    rows = await extract_with_gemini(content, file.filename, "suppliers")
+    rows = extract_with_gemini(content, file.filename, "suppliers")
 
-    # Store in Supabase
-    for row in rows:
-        supabase.table("suppliers").insert({
-            "company_id": company_id,
-            "name": row.get("name", ""),
-            "country": row.get("country", ""),
-            "components": row.get("components", ""),
-        }).execute()
+    # Store in Supabase if valid company_id
+    if _is_valid_uuid(company_id):
+        for row in rows:
+            supabase.table("suppliers").insert({
+                "company_id": company_id,
+                "name": row.get("name", ""),
+                "country": row.get("country", ""),
+            }).execute()
 
     return {"extracted": rows, "count": len(rows)}
 
@@ -87,15 +115,16 @@ async def upload_sla(
     company_id: str = Form(...),
 ):
     content = await file.read()
-    rows = await extract_with_gemini(content, file.filename, "sla")
+    rows = extract_with_gemini(content, file.filename, "sla")
 
-    for row in rows:
-        supabase.table("customers").insert({
-            "company_id": company_id,
-            "name": row.get("customer", ""),
-            "sla_days": row.get("sla_days"),
-            "penalty_percent": row.get("penalty_percent"),
-        }).execute()
+    if _is_valid_uuid(company_id):
+        for row in rows:
+            supabase.table("customers").insert({
+                "company_id": company_id,
+                "name": row.get("customer", ""),
+                "sla_days": row.get("sla_days"),
+                "penalty_percent": row.get("penalty_percent"),
+            }).execute()
 
     return {"extracted": rows, "count": len(rows)}
 
@@ -106,17 +135,18 @@ async def upload_bom(
     company_id: str = Form(...),
   ):
     content = await file.read()
-    rows = await extract_with_gemini(content, file.filename, "bom")
+    rows = extract_with_gemini(content, file.filename, "bom")
 
-    for row in rows:
-        supabase.table("parts").insert({
-            "company_id": company_id,
-            "part_number": row.get("part_number", ""),
-            "description": row.get("description", ""),
-            "supplier_name": row.get("supplier_name", ""),
-            "quantity_per_unit": row.get("quantity_per_unit"),
-            "lead_time_days": row.get("lead_time_days"),
-            "unit_cost": row.get("unit_cost"),
-        }).execute()
+    if _is_valid_uuid(company_id):
+        for row in rows:
+            supabase.table("parts").insert({
+                "company_id": company_id,
+                "part_number": row.get("part_number", ""),
+                "description": row.get("description", ""),
+                "supplier_name": row.get("supplier_name", ""),
+                "quantity_per_unit": row.get("quantity_per_unit"),
+                "lead_time_days": row.get("lead_time_days"),
+                "unit_cost": row.get("unit_cost"),
+            }).execute()
 
     return {"extracted": rows, "count": len(rows)}
