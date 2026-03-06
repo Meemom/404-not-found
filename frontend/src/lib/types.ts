@@ -110,6 +110,53 @@ export interface InventoryItem {
   unit_cost_eur: number;
   primary_supplier: string;
   backup_supplier: string | null;
+  warehouse_location: string;
+  last_replenishment: string;
+  next_expected_delivery: string;
+}
+
+// ── BOM (Bill of Materials) ──
+export interface BOMSupplier {
+  supplier_id: string;
+  name: string;
+  lead_time_days: number;
+  cost_per_unit_eur?: number;
+}
+
+export interface BOMDependentOrder {
+  order_id: string;
+  customer: string;
+  product: string;
+  quantity: number;
+  total_value_eur: number;
+  due_date: string;
+  status: string;
+}
+
+export interface BOMInventory {
+  current_stock_units: number;
+  daily_consumption_units: number;
+  days_of_supply: number;
+  safety_stock_units: number;
+  reorder_point_units: number;
+  status: "healthy" | "adequate" | "below_reorder" | "critical";
+  inventory_value_eur: number;
+}
+
+export interface BOMItem {
+  component_id: string;
+  name: string;
+  category: string;
+  criticality: "critical" | "medium" | "low";
+  suppliers: {
+    primary: BOMSupplier;
+    backup: BOMSupplier | null;
+  };
+  inventory: BOMInventory;
+  warehouse_location: string;
+  last_replenishment: string;
+  next_expected_delivery: string;
+  dependent_orders: BOMDependentOrder[];
 }
 
 // ── Risk & Disruption ──
