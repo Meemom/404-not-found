@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Warden is an AI-powered supply chain risk management platform built for a hackathon (team: 404-not-found). It monitors disruptions, calculates risk, suggests mitigations, and drafts actions (emails, POs, escalations) for a fictional company, AutoParts GmbH.
+Warden is an AI-powered supply chain risk management platform built for a hackathon (team: 404-not-found). It monitors disruptions, calculates risk, suggests mitigations, and drafts actions (emails, POs, escalations). 
 
 ## Tech Stack
 
