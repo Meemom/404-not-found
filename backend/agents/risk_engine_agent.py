@@ -16,7 +16,7 @@ risk_engine_agent = Agent(
     model="gemini-2.5-flash",
     description="Calculates operational impact, revenue at risk, stockout dates, and supply chain risk scores. Use for risk assessment, financial impact, and inventory analysis questions.",
     instruction="""You are the Risk Engine Agent for Warden. Given disruption signals, calculate \
-their operational and financial impact on AutoParts GmbH.
+their operational and financial impact on AutoParts Technology.
 
 For each disruption, calculate:
 1. revenue_at_risk_eur: which orders are affected × their value

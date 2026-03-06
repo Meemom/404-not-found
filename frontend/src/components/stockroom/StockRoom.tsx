@@ -4,9 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { BOMItem } from "@/lib/types";
 import { initScene, updateInventory, dispose, type StockSceneState } from "./StockScene";
 import WardenAvatar from "@/components/WardenAvatar";
+import { streamChat, approveAction, dismissAction, type SSEEvent } from "@/lib/api";
 
 interface StockRoomProps {
   inventory: BOMItem[];
+}
+
+interface Recommendation {
+  action_id: string;
+  action_type: string;
+  preview: string;
+  content: any;
+  status: "pending" | "approved" | "dismissed";
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,26 +38,26 @@ const CRITICALITY_COLORS: Record<string, string> = {
   low: "#0D9488",
 };
 
+const URGENCY_COLORS: Record<string, string> = {
+  emergency: "#EF4444",
+  urgent: "#F59E0B",
+  standard: "#3b82f6",
+};
+
 export default function StockRoom({ inventory }: StockRoomProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<StockSceneState | null>(null);
   const [selectedItem, setSelectedItem] = useState<BOMItem | null>(null);
-  const [showChat, setShowChat] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const sessionIdRef = useRef(crypto.randomUUID());
+  const abortRef = useRef<AbortController | null>(null);
+  const panelContentRef = useRef<HTMLDivElement>(null);
 
-  const { stockSummary, hasCritical } = useMemo(() => {
-    const total = inventory.length;
-    const critical = inventory.filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical").length;
-    const healthy = inventory.filter((i) => i.inventory.status === "healthy").length;
-    const totalValue = inventory.reduce((sum, i) => sum + i.inventory.inventory_value_eur, 0);
-
-    if (critical > 0) {
-      const names = inventory
-        .filter((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical")
-        .map((i) => i.name)
-        .join(", ");
-      return { stockSummary: `Heads up! ${critical} of ${total} components need attention: ${names}. Total inventory value is \u20AC${totalValue.toLocaleString()}. ${healthy} items are healthy.`, hasCritical: true };
-    }
-    return { stockSummary: `Looking good! All ${total} components are well-stocked. Total inventory value: \u20AC${totalValue.toLocaleString()}.`, hasCritical: false };
+  const hasCritical = useMemo(() => {
+    return inventory.some((i) => i.inventory.status === "below_reorder" || i.inventory.status === "critical");
   }, [inventory]);
 
   const onItemClick = useCallback((item: BOMItem) => {
@@ -71,18 +80,115 @@ export default function StockRoom({ inventory }: StockRoomProps) {
 
   const initialInventoryRef = useRef(inventory);
   useEffect(() => {
-    // Skip the first render — initScene already built shelves with this data
     if (stateRef.current && inventory !== initialInventoryRef.current) {
       updateInventory(stateRef.current, inventory);
     }
   }, [inventory]);
 
-  // Keep callback ref in sync
   useEffect(() => {
     if (stateRef.current) {
       stateRef.current.onItemClick = onItemClick;
     }
   }, [onItemClick]);
+
+  const runAnalysis = useCallback(() => {
+    // Abort any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // Reset state for fresh analysis
+    setStreamingText("");
+    setRecommendations([]);
+    setIsLoading(true);
+
+    // New session per analysis run
+    sessionIdRef.current = crypto.randomUUID();
+
+    const prompt =
+      "Analyze current inventory levels. For any components below reorder point or critical, recommend reorder quantities and flag them.";
+
+    streamChat(
+      prompt,
+      sessionIdRef.current,
+      (token) => {
+        setStreamingText((prev) => prev + token);
+      },
+      controller.signal,
+      (event: SSEEvent) => {
+        if (event.event === "action_generated" || event.type === "action_generated") {
+          setRecommendations((prev) => [
+            ...prev,
+            {
+              action_id: event.action_id || "",
+              action_type: event.action_type || "",
+              preview: event.preview || "",
+              content: event.content,
+              status: "pending",
+            },
+          ]);
+        }
+        if (event.event === "done" || event.type === "done") {
+          setIsLoading(false);
+        }
+      },
+    ).catch((err) => {
+      if (err.name !== "AbortError") {
+        setStreamingText((prev) => prev + "\n\nFailed to connect to Warden agent.");
+        setIsLoading(false);
+      }
+    });
+  }, []);
+
+  const handleTogglePanel = useCallback(() => {
+    setPanelOpen((prev) => {
+      const opening = !prev;
+      if (opening) {
+        // Run analysis when opening
+        setTimeout(runAnalysis, 0);
+      } else {
+        // Abort if closing
+        abortRef.current?.abort();
+      }
+      return opening;
+    });
+  }, [runAnalysis]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const handleApprove = async (actionId: string) => {
+    try {
+      await approveAction(actionId);
+      setRecommendations((prev) =>
+        prev.map((r) => (r.action_id === actionId ? { ...r, status: "approved" } : r)),
+      );
+    } catch {
+      // Silently fail — user can retry
+    }
+  };
+
+  const handleDismiss = async (actionId: string) => {
+    try {
+      await dismissAction(actionId, "User dismissed from stockroom");
+      setRecommendations((prev) =>
+        prev.map((r) => (r.action_id === actionId ? { ...r, status: "dismissed" } : r)),
+      );
+    } catch {
+      // Silently fail
+    }
+  };
+
+  // Auto-scroll panel as streaming text arrives
+  useEffect(() => {
+    if (panelContentRef.current) {
+      panelContentRef.current.scrollTop = panelContentRef.current.scrollHeight;
+    }
+  }, [streamingText, recommendations]);
 
   return (
     <div
@@ -90,12 +196,12 @@ export default function StockRoom({ inventory }: StockRoomProps) {
       className="relative w-full h-full"
       style={{ background: "var(--w-ob-bg)" }}
     >
-      {/* Warden avatar - bottom right corner */}
+      {/* Warden avatar + recommendations panel - bottom right corner */}
       <div
         className="absolute z-40"
         style={{ bottom: 24, right: 24 }}
       >
-        {showChat && (
+        {panelOpen && (
           <div
             style={{
               position: "absolute",
@@ -103,25 +209,214 @@ export default function StockRoom({ inventory }: StockRoomProps) {
               right: 0,
               marginBottom: 8,
               background: "#fff",
-              borderRadius: 12,
-              padding: "12px 16px",
-              width: 280,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+              borderRadius: 14,
+              width: 350,
+              maxHeight: "60vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
               border: "1px solid #e2e8f0",
-              fontSize: 13,
-              color: "#334155",
-              lineHeight: 1.5,
               animation: "chatBubbleIn 0.2s ease-out",
+              overflow: "hidden",
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--w-blue, #3b82f6)", marginBottom: 4 }}>
-              Warden
+            {/* Panel header */}
+            <div
+              style={{
+                padding: "12px 16px",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--w-blue, #3b82f6)" }}>
+                Warden Inventory Analysis
+              </div>
+              <button
+                onClick={handleTogglePanel}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                  lineHeight: 1,
+                  padding: "0 2px",
+                }}
+              >
+                &times;
+              </button>
             </div>
-            {stockSummary}
+
+            {/* Scrollable content */}
+            <div
+              ref={panelContentRef}
+              style={{
+                padding: "12px 16px",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              {/* Loading indicator */}
+              {isLoading && !streamingText && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "var(--w-blue, #3b82f6)",
+                      animation: "pulse 1s ease-in-out infinite",
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: "#64748b" }}>Analyzing inventory levels...</span>
+                </div>
+              )}
+
+              {/* Streaming agent text */}
+              {streamingText && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#334155",
+                    lineHeight: 1.6,
+                    marginBottom: 14,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {streamingText}
+                  {isLoading && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 6,
+                        height: 14,
+                        background: "var(--w-blue, #3b82f6)",
+                        marginLeft: 2,
+                        animation: "blink 0.8s step-end infinite",
+                        verticalAlign: "text-bottom",
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Recommendation cards */}
+              {recommendations.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#64748b",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Recommendations ({recommendations.length})
+                  </div>
+                  {recommendations.map((rec) => (
+                    <div
+                      key={rec.action_id}
+                      style={{
+                        background: rec.status === "approved" ? "#f0fdf4" : rec.status === "dismissed" ? "#fafafa" : "#f8fafc",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        border: `1px solid ${rec.status === "approved" ? "#bbf7d0" : rec.status === "dismissed" ? "#e2e8f0" : "#e2e8f0"}`,
+                        opacity: rec.status === "dismissed" ? 0.5 : 1,
+                      }}
+                    >
+                      {/* Card header */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: "9999px",
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "#fff",
+                            background: URGENCY_COLORS[rec.content?.urgency] || "#64748b",
+                          }}
+                        >
+                          {(rec.content?.urgency || rec.action_type || "action").toUpperCase()}
+                        </span>
+                        {rec.status === "approved" && (
+                          <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>Approved</span>
+                        )}
+                        {rec.status === "dismissed" && (
+                          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Dismissed</span>
+                        )}
+                      </div>
+
+                      {/* Card body */}
+                      <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.5, marginBottom: 8 }}>
+                        {rec.preview || rec.content?.title || rec.content?.message || "Reorder recommendation"}
+                      </div>
+
+                      {/* Action buttons */}
+                      {rec.status === "pending" && (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={() => handleApprove(rec.action_id)}
+                            style={{
+                              flex: 1,
+                              padding: "5px 10px",
+                              borderRadius: 7,
+                              border: "none",
+                              background: "var(--w-blue, #3b82f6)",
+                              color: "#fff",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleDismiss(rec.action_id)}
+                            style={{
+                              flex: 1,
+                              padding: "5px 10px",
+                              borderRadius: 7,
+                              border: "1px solid #e2e8f0",
+                              background: "#fff",
+                              color: "#64748b",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Done indicator */}
+              {!isLoading && streamingText && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "8px 0",
+                    fontSize: 11,
+                    color: "#94a3b8",
+                  }}
+                >
+                  Analysis complete
+                </div>
+              )}
+            </div>
           </div>
         )}
         <button
-          onClick={() => setShowChat((v) => !v)}
+          onClick={handleTogglePanel}
           className={hasCritical ? "warden-critical-glow" : undefined}
           style={{
             cursor: "pointer",
@@ -316,6 +611,14 @@ export default function StockRoom({ inventory }: StockRoomProps) {
         }
         .warden-critical-glow {
           animation: criticalGlow 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
       `}</style>
     </div>
