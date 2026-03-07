@@ -41,7 +41,7 @@ import { getCompanyProfile, getOperationsOverview, getPendingActions, getUploade
 import type { ScannedEvent } from "@/lib/api";
 import StockRoom from "@/components/stockroom/StockRoom";
 import WardenAvatar from "@/components/WardenAvatar";
-import type { BOMItem } from "@/lib/types";
+import type { BOMItem, EventNode as StoreEventNode } from "@/lib/types";
 import { MOCK_BOM } from "@/lib/mock-bom";
 
 const nodeTypes = {
@@ -62,6 +62,7 @@ const ROW_GAP = 160;
 
 export default function Home() {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
   const {
     setCompany,
     setDashboard,
@@ -97,6 +98,10 @@ export default function Home() {
   const [uploadedSLA, setUploadedSLA] = useState<any[]>([]);
   const [uploadedBOM, setUploadedBOM] = useState<any[]>([]);
   const [scannedEvents, setScannedEvents] = useState<ScannedEvent[]>([]);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!onboarded) {
@@ -232,10 +237,11 @@ export default function Home() {
           eventType: evt.type.toLowerCase(),
           delay: `+${evt.expected_delay_days}d`,
           affectedRegions: evt.affected_regions ?? [],
-          start_time: new Date().toISOString().split("T")[0],
+          // Keep deterministic to avoid SSR/CSR hydration drift.
+          start_time: "2026-03-01",
         },
       });
-      eventY += ROW_GAP;
+      eventY += ROW_GAP +50;
     }
 
     // ── DEFAULT SUPPLIERS ──
@@ -465,7 +471,7 @@ export default function Home() {
     return Component ? <Component nodeId={selectedNode.id} /> : null;
   }, [selectedNode]);
 
-  if (!onboarded) return null;
+  if (!isHydrated || !onboarded) return null;
 
   return (
     <div className="w-full h-screen flex flex-col" style={{ background: "var(--w-ob-bg)" }}>

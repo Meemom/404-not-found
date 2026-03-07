@@ -104,7 +104,7 @@ export function EventNode({ data, selected }: EventNodeProps) {
               event.stopPropagation();
               data.onViewIntelligence?.();
             }}
-            className="mt-2 text-[10px] font-medium text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity hover:text-teal-700"
+            className="nodrag nopan mt-2 text-[10px] font-medium text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity hover:text-teal-700"
             style={{ letterSpacing: "0.01em" }}
           >
             View Intelligence →
