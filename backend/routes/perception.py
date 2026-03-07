@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timezone
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -34,6 +35,27 @@ class MCPStatusResponse(BaseModel):
     brave_search: bool
     fetch: bool
     youtube: bool
+
+
+async def _youtube_api_usable() -> bool:
+    """Validate YouTube API key by making a lightweight videos.list request."""
+    api_key = (os.getenv("YOUTUBE_API_KEY") or "").strip()
+    if not api_key:
+        return False
+
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(
+                "https://www.googleapis.com/youtube/v3/videos",
+                params={
+                    "part": "id",
+                    "id": "dQw4w9WgXcQ",
+                    "key": api_key,
+                },
+            )
+        return resp.status_code == 200
+    except Exception:
+        return False
 
 
 @router.post("/event-intelligence")
@@ -70,7 +92,7 @@ async def fetch_article(request: FetchArticleRequest):
 
 @router.get("/mcp-status", response_model=MCPStatusResponse)
 async def get_mcp_status():
-    youtube_ok = bool((os.getenv("YOUTUBE_API_KEY") or "").strip())
+    youtube_ok = await _youtube_api_usable()
     return {
         "brave_search": mcp_manager.brave_available,
         "fetch": mcp_manager.fetch_available,
