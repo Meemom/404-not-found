@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 from google.adk.tools.mcp_tool import MCPToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from mcp import StdioServerParameters
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class MCPManager:
     async def startup(self) -> None:
         """Try connecting to each MCP server. Never raise."""
         brave_key = os.environ.get("BRAVE_SEARCH_API_KEY") or os.environ.get("BRAVE_API_KEY", "")
+        stdio_timeout = float(os.getenv("MCP_STDIO_TIMEOUT", "10"))
 
         if not brave_key.strip():
             logger.warning("[MCP] Brave Search MCP unavailable: missing BRAVE_SEARCH_API_KEY/BRAVE_API_KEY")
@@ -30,10 +32,13 @@ class MCPManager:
         else:
             try:
                 self._brave_toolset = MCPToolset(
-                    connection_params=StdioServerParameters(
-                        command="npx",
-                        args=["-y", "@modelcontextprotocol/server-brave-search"],
-                        env={"BRAVE_API_KEY": brave_key},
+                    connection_params=StdioConnectionParams(
+                        server_params=StdioServerParameters(
+                            command="npx",
+                            args=["-y", "@modelcontextprotocol/server-brave-search"],
+                            env={"BRAVE_API_KEY": brave_key},
+                        ),
+                        timeout=stdio_timeout,
                     )
                 )
                 # Force an initial session/listing so startup reflects real availability.
@@ -45,11 +50,23 @@ class MCPManager:
                 self._brave_available = False
                 self._brave_toolset = None
 
+        fetch_enabled = os.getenv("ENABLE_FETCH_MCP", "false").lower() in {"1", "true", "yes", "on"}
+        if not fetch_enabled:
+            logger.info("[MCP] Fetch MCP disabled (set ENABLE_FETCH_MCP=true to enable)")
+            self._fetch_available = False
+            self._fetch_toolset = None
+            return
+
+        fetch_args_raw = os.getenv("FETCH_MCP_ARGS", "-y mcp-server-fetch-typescript")
+
         try:
             self._fetch_toolset = MCPToolset(
-                connection_params=StdioServerParameters(
-                    command="npx",
-                    args=["-y", "@modelcontextprotocol/server-fetch"],
+                connection_params=StdioConnectionParams(
+                    server_params=StdioServerParameters(
+                        command=os.getenv("FETCH_MCP_COMMAND", "npx"),
+                        args=fetch_args_raw.split(),
+                    ),
+                    timeout=stdio_timeout,
                 )
             )
             await self._fetch_toolset.get_tools()

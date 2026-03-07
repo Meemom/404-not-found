@@ -1,5 +1,6 @@
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -12,10 +13,21 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 load_dotenv()
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await mcp_manager.startup()
+    try:
+        yield
+    finally:
+        await mcp_manager.shutdown()
+
+
 app = FastAPI(
     title="Warden API",
     description="Autonomous Supply Chain Resilience Co-Pilot",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
@@ -41,16 +53,6 @@ app.include_router(actions_router)
 app.include_router(company_router)
 app.include_router(upload_router)
 app.include_router(perception_router, prefix="/api")
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    await mcp_manager.startup()
-
-
-@app.on_event("shutdown")
-async def _shutdown() -> None:
-    await mcp_manager.shutdown()
 
 @app.get("/")
 async def root():
