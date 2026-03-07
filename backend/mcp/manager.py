@@ -22,11 +22,11 @@ class MCPManager:
 
     async def startup(self) -> None:
         """Try connecting to each MCP server. Never raise."""
-        brave_key = os.environ.get("BRAVE_SEARCH_API_KEY") or os.environ.get("BRAVE_API_KEY", "")
+        brave_key = os.environ.get("BRAVE_SEARCH_API_KEY")
         stdio_timeout = float(os.getenv("MCP_STDIO_TIMEOUT", "10"))
 
         if not brave_key.strip():
-            logger.warning("[MCP] Brave Search MCP unavailable: missing BRAVE_SEARCH_API_KEY/BRAVE_API_KEY")
+            logger.warning("[MCP] Brave Search MCP unavailable: missing BRAVE_SEARCH_API_KEY")
             self._brave_available = False
             self._brave_toolset = None
         else:
@@ -36,7 +36,7 @@ class MCPManager:
                         server_params=StdioServerParameters(
                             command="npx",
                             args=["-y", "@modelcontextprotocol/server-brave-search"],
-                            env={"BRAVE_API_KEY": brave_key},
+                            env={"BRAVE_SEARCH_API_KEY": brave_key},
                         ),
                         timeout=stdio_timeout,
                     )
